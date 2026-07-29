@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glass of the Web — Cross-browser Refraction Demo</title>
+  <style>
+    :root {
+      --bg: #090a0f; --card: rgba(255,255,255,0.04);
+      --border: rgba(255,255,255,0.08); --text: #f3f4f6;
+      --muted: #6b7280; --cyan: #00d2ff; --purple: #9333ea;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg); color: var(--text);
+      font: 400 16px/1.5 system-ui, -apple-system, sans-serif;
+      min-height: 100vh; padding: 2rem 1rem;
+      background-image: radial-gradient(circle at 20% 30%, rgba(0,210,255,0.1), transparent 50%),
+                        radial-gradient(circle at 80% 70%, rgba(147,51,234,0.08), transparent 50%);
+    }
+    header { text-align: center; margin-bottom: 3rem; }
+    header h1 {
+      font-size: 2.5rem; font-weight: 800; letter-spacing: -0.03em;
+      background: linear-gradient(135deg, #fff, #9ca3af);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    header p { color: var(--muted); margin-top: 0.5rem; font-size: 1.05rem; }
+
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 2rem; max-width: 1120px; margin: 0 auto; }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 24px; padding: 1.75rem;
+      display: flex; flex-direction: column; gap: 1.5rem;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .card h3 { font-size: 1.1rem; font-weight: 600; }
+    .card p.desc { font-size: 0.85rem; color: var(--muted); margin-top: -1rem; }
+
+    /* === Switch === */
+    .switch { width: 120px; height: 60px; border-radius: 30px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); cursor: pointer; position: relative; overflow: hidden; flex-shrink: 0; }
+    .switch.active { background: var(--cyan); border-color: rgba(0,210,255,0.4); }
+    .switch-fill { position: absolute; inset: 0; border-radius: 30px; background: linear-gradient(135deg, var(--cyan), var(--purple)); transition: opacity 0.3s; opacity: 0; }
+    .switch.active .switch-fill { opacity: 1; }
+    .switch-thumb { position: absolute; top: 6px; left: 6px; width: 48px; height: 48px; border-radius: 24px; background: rgba(255,255,255,0.95); box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 2px 4px #fff; transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1); z-index: 1; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+    .switch.active .switch-thumb { transform: translateX(60px); }
+
+    /* === Slider === */
+    .slider-wrap { width: 100%; padding: 0.5rem 0; position: relative; }
+    .slider-track { width: 100%; height: 16px; background: rgba(255,255,255,0.08); border-radius: 8px; position: relative; overflow: hidden; }
+    .slider-fill { height: 100%; width: 50%; background: linear-gradient(90deg, var(--cyan), var(--purple)); border-radius: 8px; }
+    .slider-handle { position: absolute; top: 50%; left: 50%; width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.9); box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 2px 4px #fff; cursor: grab; transform: translate(-50%,-50%); z-index: 1; }
+    .slider-handle:active { cursor: grabbing; }
+    .slider-val { font-size: 0.85rem; color: var(--muted); margin-top: 0.5rem; text-align: center; }
+
+    /* === Segmented === */
+    .seg { display: flex; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 14px; padding: 4px; position: relative; width: 100%; flex-shrink: 0; }
+    .seg-item { flex: 1; padding: 0.7rem 1rem; text-align: center; font-weight: 500; font-size: 0.9rem; color: var(--muted); cursor: pointer; z-index: 2; transition: color 0.3s; }
+    .seg-item.active { color: #fff; }
+    .seg-pill { position: absolute; top: 4px; left: 4px; width: calc(33.33% - 4px); height: calc(100% - 8px); border-radius: 10px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1); z-index: 1; }
+
+    /* === Cursor Lens === */
+    .lens-stage { width: 100%; height: 220px; background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); border-radius: 16px; position: relative; overflow: hidden; cursor: none; display: flex; align-items: center; justify-content: center; }
+    .lens-stage::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 30% 40%, rgba(0,210,255,0.15), transparent 60%), radial-gradient(circle at 70% 60%, rgba(147,51,234,0.12), transparent 50%); }
+    .lens-stage span { z-index: 0; font-size: 1.2rem; font-weight: 600; color: rgba(255,255,255,0.3); letter-spacing: 0.05em; pointer-events: none; }
+    .lens-cursor { width: 80px; height: 80px; border-radius: 50%; position: absolute; pointer-events: none; z-index: 1; box-shadow: 0 0 0 1px rgba(255,255,255,0.3), 0 8px 24px rgba(0,0,0,0.4); transform: translate(-50%,-50%); }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Glass of the Web</h1>
+    <p>Live DOM refraction via SVG feDisplacementMap — works in Chrome, Safari, Firefox</p>
+  </header>
+
+  <div class="grid">
+
+    <!-- 1. Glass Switch -->
+    <div class="card">
+      <h3>01 Refractive Switch</h3>
+      <p class="desc">Toggle to see the thumb refract the track fill beneath it</p>
+      <div id="demo-switch" class="switch">
+        <div class="switch-fill"></div>
+        <div class="switch-thumb">○</div>
+      </div>
+    </div>
+
+    <!-- 2. Glass Slider -->
+    <div class="card">
+      <h3>02 Refractive Slider</h3>
+      <p class="desc">Drag the handle — the fill is bent by the glass lens</p>
+      <div class="slider-wrap" id="demo-slider">
+        <div class="slider-track">
+          <div class="slider-fill" id="slider-fill-el"></div>
+        </div>
+        <div class="slider-handle" id="slider-handle-el">⋅</div>
+        <div class="slider-val" id="slider-val-el">Value: 50%</div>
+      </div>
+    </div>
+
+    <!-- 3. Glass Segmented Control -->
+    <div class="card">
+      <h3>03 Refractive Segmented Control</h3>
+      <p class="desc">Glass pill glides between options with spring motion</p>
+      <div id="demo-seg" class="seg">
+        <div class="seg-pill" id="seg-pill-el"></div>
+        <div class="seg-item active" data-idx="0">Daily</div>
+        <div class="seg-item" data-idx="1">Weekly</div>
+        <div class="seg-item" data-idx="2">Monthly</div>
+      </div>
+    </div>
+
+    <!-- 4. Cursor Lens -->
+    <div class="card">
+      <h3>04 Interactive Cursor Lens</h3>
+      <p class="desc">Move your mouse — the lens refracts pixels beneath it</p>
+      <div class="lens-stage" id="demo-lens">
+        <span>MOVE CURSOR HERE</span>
+        <div class="lens-cursor" id="lens-cursor-el"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { glass } from './glass-engine.js';
+
+    /* ——— 1. Glass Switch ——— */
+    const sw = document.getElementById('demo-switch');
+    const swThumb = sw.querySelector('.switch-thumb');
+    const swGlass = glass.wrap(swThumb, { radius: 24, refractionScale: 0.2, scale: 30, blur: 0 });
+    sw.addEventListener('click', () => sw.classList.toggle('active'));
+
+    /* ——— 2. Glass Slider ——— */
+    const handle = document.getElementById('slider-handle-el');
+    const fill = document.getElementById('slider-fill-el');
+    const valText = document.getElementById('slider-val-el');
+    const hGlass = glass.wrap(handle, { radius: 18, refractionScale: 0.18, scale: 20, blur: 0 });
+
+    let dragging = false;
+    const track = handle.parentElement; // slider-wrap
+    const trackInner = handle.previousElementSibling; // slider-track
+    const updateSlider = (cx) => {
+      const r = track.getBoundingClientRect();
+      let pct = Math.max(0, Math.min(100, ((cx - r.left) / r.width) * 100));
+      handle.style.left = pct + '%';
+      fill.style.width = pct + '%';
+      valText.textContent = 'Value: ' + Math.round(pct) + '%';
+    };
+    handle.addEventListener('mousedown', (e) => { dragging = true; e.preventDefault(); });
+    window.addEventListener('mousemove', (e) => { if (dragging) updateSlider(e.clientX); });
+    window.addEventListener('mouseup', () => { dragging = false; });
+    handle.addEventListener('touchstart', () => { dragging = true; });
+    window.addEventListener('touchmove', (e) => { if (dragging) updateSlider(e.touches[0].clientX); });
+    window.addEventListener('touchend', () => { dragging = false; });
+
+    /* ——— 3. Segmented Control ——— */
+    const seg = document.getElementById('demo-seg');
+    const pill = document.getElementById('seg-pill-el');
+    const items = seg.querySelectorAll('.seg-item');
+    const pGlass = glass.wrap(pill, { radius: 10, refractionScale: 0.12, scale: 15, blur: 0 });
+
+    items.forEach((item, idx) => {
+      item.addEventListener('click', () => {
+        items.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        pill.style.transform = `translateX(${idx * 100}%)`;
+      });
+    });
+
+    /* ——— 4. Cursor Lens ——— */
+    const stage = document.getElementById('demo-lens');
+    const cursor = document.getElementById('lens-cursor-el');
+    const cGlass = glass.wrap(cursor, { radius: 40, refractionScale: 0.25, scale: 35, blur: 0 });
+
+    stage.addEventListener('mousemove', (e) => {
+      const r = stage.getBoundingClientRect();
+      const x = e.clientX - r.left;
+      const y = e.clientY - r.top;
+      cursor.style.left = x + 'px';
+      cursor.style.top = y + 'px';
+    });
+    stage.addEventListener('mouseleave', () => {
+      cursor.style.opacity = '0';
+    });
+    stage.addEventListener('mouseenter', () => {
+      cursor.style.opacity = '1';
+    });
+  </script>
+</body>
+</html>
