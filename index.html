@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glass of the Web - Cross-Browser Refraction Suite</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header class="header">
+    <h1>Glass for the Web</h1>
+    <p>Cross-browser SVG feDisplacementMap refraction engine built with 4-fold quadrant symmetry.</p>
+  </header>
+
+  <div class="demo-grid">
+    
+    <!-- Demo 1: Glass Switch -->
+    <div class="demo-card">
+      <h3>01. Refractive Switch</h3>
+      <div class="glass-switch-container" id="switch-container">
+        <div class="glass-switch-thumb" id="switch-thumb"></div>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted)">Toggle to observe live background refraction</p>
+    </div>
+
+    <!-- Demo 2: Glass Slider -->
+    <div class="demo-card">
+      <h3>02. Refractive Slider</h3>
+      <div class="glass-slider-wrapper">
+        <div class="glass-slider-track">
+          <div class="glass-slider-fill" id="slider-fill"></div>
+        </div>
+        <div class="glass-slider-thumb" id="slider-thumb"></div>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted)" id="slider-value">Value: 50%</p>
+    </div>
+
+    <!-- Demo 3: Glass Segmented Control -->
+    <div class="demo-card">
+      <h3>03. Refractive Segmented Control</h3>
+      <div class="glass-segmented">
+        <div class="glass-segmented-pill" id="segmented-pill"></div>
+        <div class="glass-segmented-item active" data-index="0">Daily</div>
+        <div class="glass-segmented-item" data-index="1">Weekly</div>
+        <div class="glass-segmented-item" data-index="2">Monthly</div>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted)">Gliding glass lens with spring motion</p>
+    </div>
+
+    <!-- Demo 4: Cursor Refraction Lens -->
+    <div class="demo-card">
+      <h3>04. Interactive Cursor Lens</h3>
+      <div class="cursor-lens-stage" id="lens-stage">
+        <div class="lens-overlay" id="cursor-lens"></div>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted)">Move mouse over image to refract live canvas pixels</p>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { glassEngine } from './glass-engine.js';
+
+    // 1. Initialize Glass Switch
+    const switchContainer = document.getElementById('switch-container');
+    const switchThumb = document.getElementById('switch-thumb');
+    
+    const switchFilter = glassEngine.createGlassFilter({
+      width: 48,
+      height: 48,
+      radius: 24,
+      refractionScale: 0.25,
+      scale: 30
+    });
+    switchThumb.style.filter = `url(#${switchFilter.filterId})`;
+
+    switchContainer.addEventListener('click', () => {
+      switchContainer.classList.toggle('active');
+    });
+
+    // 2. Initialize Glass Slider
+    const sliderThumb = document.getElementById('slider-thumb');
+    const sliderFill = document.getElementById('slider-fill');
+    const sliderValText = document.getElementById('slider-value');
+
+    const sliderFilter = glassEngine.createGlassFilter({
+      width: 36,
+      height: 36,
+      radius: 18,
+      refractionScale: 0.18,
+      scale: 20
+    });
+    sliderThumb.style.filter = `url(#${sliderFilter.filterId})`;
+
+    let isDragging = false;
+    const track = sliderThumb.parentElement;
+
+    const updateSlider = (clientX) => {
+      const rect = track.getBoundingClientRect();
+      let offsetX = clientX - rect.left;
+      offsetX = Math.max(0, Math.min(offsetX, rect.width));
+      const percentage = (offsetX / rect.width) * 100;
+      
+      sliderThumb.style.left = `${percentage}%`;
+      sliderFill.style.width = `${percentage}%`;
+      sliderValText.textContent = `Value: ${Math.round(percentage)}%`;
+    };
+
+    sliderThumb.addEventListener('mousedown', () => isDragging = true);
+    window.addEventListener('mouseup', () => isDragging = false);
+    window.addEventListener('mousemove', (e) => {
+      if (isDragging) updateSlider(e.clientX);
+    });
+
+    // 3. Initialize Glass Segmented Control
+    const segmentedItems = document.querySelectorAll('.glass-segmented-item');
+    const segmentedPill = document.getElementById('segmented-pill');
+
+    const pillFilter = glassEngine.createGlassFilter({
+      width: 100,
+      height: 36,
+      radius: 12,
+      refractionScale: 0.15,
+      scale: 15
+    });
+    segmentedPill.style.filter = `url(#${pillFilter.filterId})`;
+
+    segmentedItems.forEach((item, idx) => {
+      item.addEventListener('click', () => {
+        segmentedItems.forEach(i => i.classList.remove('active'));
+        item.classList.add('active');
+        segmentedPill.style.transform = `translateX(${idx * 100}%)`;
+      });
+    });
+
+    // 4. Initialize Cursor Lens
+    const lensStage = document.getElementById('lens-stage');
+    const cursorLens = document.getElementById('cursor-lens');
+
+    const cursorFilter = glassEngine.createGlassFilter({
+      width: 80,
+      height: 80,
+      radius: 40,
+      refractionScale: 0.3,
+      scale: 35
+    });
+    cursorLens.style.filter = `url(#${cursorFilter.filterId})`;
+
+    lensStage.addEventListener('mousemove', (e) => {
+      const rect = lensStage.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+      cursorLens.style.left = `${x}px`;
+      cursorLens.style.top = `${y}px`;
+    });
+  </script>
+</body>
+</html>
