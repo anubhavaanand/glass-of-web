@@ -1,227 +1,173 @@
 ---
 name: building-glass-for-web
-description: Cross-browser liquid glass UI components using SVG feDisplacementMap refraction. Use when building refractive glass switches, sliders, segmented controls, cursor lenses, modals, navbars, or glassmorphic web elements. Triggers on requests for "glass effect", "liquid glass", "refraction UI", "Aave glass", "SVG displacement glass", or "cross-browser glass components". Works in Chrome, Safari, Firefox — no flags, no fallbacks.
+description: Cross-browser liquid glass UI components using SVG feDisplacementMap refraction on a lens-shaped content copy. Use when building refractive glass switches, sliders, segmented controls, cursor lenses, modals, or glassmorphic web elements that work in Chrome, Safari, and Firefox. Triggers on requests for "glass effect", "liquid glass", "refraction UI", "Aave glass", "SVG displacement glass", or "cross-browser glass components".
 ---
 
 # Building Glass for the Web
 
-## Core Principle
+## Core Concept
 
-This technique refracts **live HTML content** using SVG's `feDisplacementMap` filter primitive applied via the CSS `filter` property. It is NOT `backdrop-filter: blur()` — that creates a static blur. This creates a **physical 3D optical lens** that bends real DOM pixels.
+This technique refracts **live HTML content** using SVG `feDisplacementMap`. The glass effect is a **lens** — a small circular or pill-shaped element that contains a copy of the content behind it. The SVG filter displaces the copy's pixels inside the lens, creating the refraction effect. Outside the lens, content renders normally.
 
-### How it differs from other approaches
+**The filter bends the content copy's own pixels** — nothing is sampled from underneath. The content's own pixels are the ones moving.
 
-| Approach | Chromium | Safari | Firefox | Text selectable? |
-|---|---|---|---|---|
-| **This technique** (`filter: url(#svg)`) | ✓ | ✓ | ✓ | Yes |
-| `backdrop-filter: url(#svg)` | ✓ | ✗ | ✗ | Yes |
-| HTML-in-Canvas API | Behind flag | ✗ | ✗ | No |
+### Why this works everywhere
 
-The critical distinction: `backdrop-filter: url(#svg)` only works in Chromium (WebKit bug #245510, open since 2022). Aave's technique uses `filter: url(#svg)` on the **content layer** instead, which works everywhere.
+| Approach | Chromium | Safari | Firefox |
+|---|---|---|---|
+| `filter: url(#svg)` on lens element | ✓ | ✓ | ✓ |
+| `backdrop-filter: url(#svg)` | ✓ | ✗ | ✗ |
+| CSS `backdrop-filter: blur()` (static) | ✓ | ✓ | ✓ |
+
+`backdrop-filter: url(#svg)` only works in Chromium (WebKit bug #245510, open since 2022). Using `filter: url(#svg)` on a lens element works in all three engines.
 
 ---
 
 ## Architecture
 
-### DOM Structure (3 layers)
+### DOM Structure
 
-```html
-<div class="glass-wrapper">                         <!-- outermost container -->
-  <!-- LAYER 1: Content that gets refracted -->
-  <div class="glass-content" style="filter: url(#filter-id)">
-    ... children (text, images, inputs, buttons) ...
+```
+Real content (track, labels, etc.)       ← renders normally, no filter
+  └─ Glass lens (position:absolute)      ← contains filter + copy
+       ├─ Content copy (offset to align) ← pixels get displaced
+       ├─ <svg><defs><filter />          ← inline per-component
+       └─ Rim overlay                    ← specular highlight + shadow
+```
+
+```
+<div class="switch-root" style="position:relative; width:80px; height:36px">
+
+  <!-- Real thumb (no filter, visible) -->
+  <div class="thumb" style="..."/>
+
+  <!-- Glass lens — this element has filter: url(#id) -->
+  <div class="lens"
+       style="position:absolute; top:3px; left:3px;
+              width:30px; height:30px; border-radius:50%;
+              overflow:hidden; will-change:filter,transform;
+              filter: url(#gf1-123456)">
+    <!-- Content copy — offset so correct region aligns with lens -->
+    <div class="copy" style="position:absolute; left:-3px; top:-3px;
+                             width:80px; height:36px">
+      ... copy of the track content behind the lens ...
+    </div>
   </div>
 
-  <!-- LAYER 2: Frost + tint (CSS backdrop-filter) -->
-  <div class="glass-frost"
-       style="backdrop-filter: blur(8px) saturate(180%)" />
+  <!-- SVG filter defs (inline, absolute, 0-size) -->
+  <svg style="position:absolute;width:0;height:0;overflow:visible">
+    <defs>
+      <filter id="gf1-123456" filterUnits="userSpaceOnUse" ...>
+        <feImage href="map.png" result="map"/>
+        <feDisplacementMap in="SourceGraphic" in2="map" scale="18"
+          xChannelSelector="R" yChannelSelector="G"/>
+      </filter>
+    </defs>
+  </svg>
 
-  <!-- LAYER 3: Specular rim + shadow overlay -->
-  <div class="glass-rim" />
+  <!-- Specular rim overlay -->
+  <div class="rim" style="..."/>
 </div>
 ```
 
-The SVG filter is applied to **Layer 1** (the content). The glass visual (frost, rim, shadow) are CSS overlays on Layers 2 and 3 that sit above the refracted content.
+### Key points
+
+- **The lens element gets the filter** — the 30×30 circle containing the content copy
+- **The content copy is offset** to align the correct background region through the lens
+- **Moving the lens** updates its `transform` and the copy's `left`/`top` — no map regen
+- **The map only changes** when the lens shape changes (resize, radius change)
 
 ---
 
-## How `feDisplacementMap` Works
+## How feDisplacementMap Works
 
-`feDisplacementMap` takes two inputs:
-1. **SourceGraphic** — the live-rendered HTML content
-2. **A displacement map** — a PNG where each pixel's color encodes how far to shift the source pixel
+`P'(x,y) = P(x + scale × (R(x,y)/255 - 0.5), y + scale × (G(x,y)/255 - 0.5))`
 
-The formula: `P'(x,y) = P(x + scale × (R(x,y) - 128), y + scale × (G(x,y) - 128))`
-
-- **Red channel** = horizontal shift (128 = neutral = no shift)
-- **Green channel** = vertical shift (128 = neutral)
-- Values < 128 shift one direction, > 128 shift the opposite
+- Red channel = horizontal shift (128 = neutral)
+- Green channel = vertical shift (128 = neutral)
+- < 128 shifts one direction, > 128 shifts opposite
+- Outward radial values → convex lens (magnifying) effect
 
 ---
 
 ## Implementation
 
-### Step 1: Generate the Displacement Map
-
 ```javascript
-function generateMap(width, height, radius, refractionScale = 0.15) {
-  const canvas = document.createElement('canvas');
-  canvas.width = width;
-  canvas.height = height;
-  const ctx = canvas.getContext('2d');
-  const data = ctx.createImageData(width, height);
-  const d = data.data;
-
-  const halfW = Math.ceil(width / 2);
-  const halfH = Math.ceil(height / 2);
-  const maxRad = Math.min(radius, halfW, halfH);
-  const scale = refractionScale * 15;
-
-  // Compute top-left quadrant only (4-fold symmetry)
-  for (let y = 0; y < halfH; y++) {
-    for (let x = 0; x < halfW; x++) {
-      let dx = 0, dy = 0;
-
-      if (x < maxRad && y < maxRad) {
-        // Corner region — smooth curvature falloff
-        const cx = maxRad - x, cy = maxRad - y;
-        const dist = Math.sqrt(cx * cx + cy * cy);
-        if (dist > 0 && dist < maxRad) {
-          const factor = Math.max(0, 1 - dist / maxRad);
-          const bend = Math.sin(factor * Math.PI * 0.5) * scale;
-          dx = (cx / maxRad) * bend;
-          dy = (cy / maxRad) * bend;
-        }
-      } else {
-        // Edge region — gentle radial falloff
-        dx = Math.sin((1 - x / halfW) * Math.PI * 0.5) * scale * 0.5;
-        dy = Math.sin((1 - y / halfH) * Math.PI * 0.5) * scale * 0.5;
+// 1. Generate the displacement map
+function genMap(w, h, strength = 55) {
+  const c = Object.assign(document.createElement('canvas'), { width: w, height: h });
+  const x = c.getContext('2d');
+  const d = x.createImageData(w, h).data;
+  const cx = w / 2, cy = h / 2;
+  const mr = Math.sqrt(cx * cx + cy * cy);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const dx = x - cx, dy = y - cy, dist = Math.sqrt(dx * dx + dy * dy);
+      const t = Math.min(dist / mr, 1);
+      const s = t * t * (3 - 2 * t) * strength;  // smoothstep
+      let r = 128, g = 128;
+      if (dist > 0.001) {
+        r = clamp(128 + (dx / dist) * s);
+        g = clamp(128 + (dy / dist) * s);
       }
-
-      // Encode displacement into RGB channels
-      const r = 128 + Math.round(dx * 10);
-      const g = 128 + Math.round(dy * 10);
-      const b = Math.round(Math.abs(dx + dy) * 15);
-
-      // Mirror across all 4 quadrants
-      setPixel(d, width, x, y, r, g, b);                          // TL
-      setPixel(d, width, width-1-x, y, 255-r, g, b);              // TR
-      setPixel(d, width, x, height-1-y, r, 255-g, b);             // BL
-      setPixel(d, width, width-1-x, height-1-y, 255-r, 255-g, b); // BR
+      const i = (y * w + x) * 4;
+      d[i] = r; d[i + 1] = g; d[i + 2] = 128; d[i + 3] = 255;
     }
   }
-
-  ctx.putImageData(data, 0, 0);
-  return canvas.toDataURL('image/png');
+  x.putImageData(new ImageData(d, w, h), 0, 0);
+  return c.toDataURL('image/png');
 }
 
-function setPixel(d, w, x, y, r, g, b) {
-  const i = (y * w + x) * 4;
-  d[i] = Math.min(255, Math.max(0, r));
-  d[i+1] = Math.min(255, Math.max(0, g));
-  d[i+2] = Math.min(255, Math.max(0, b));
-  d[i+3] = 255;
-}
-```
-
-### Step 2: Create the SVG Filter
-
-```javascript
-function createGlassFilter({ width, height, radius, refractionScale, scale = 25 }) {
-  // Dynamic ID: Safari caches filter output by ID. Changing the map without
-  // changing the ID → Safari serves stale output → glass freezes mid-motion.
-  const filterId = 'glass-' + Date.now() + '-' + Math.random().toString(36).substring(2, 7);
-  const mapUrl = generateMap(width, height, radius, refractionScale);
-
-  const svg = document.getElementById('glass-svg-root') || createSvgRoot();
+// 2. Build the SVG filter (fresh ID every call — Safari cache fix)
+function buildFilter(defs, w, h, scale) {
+  while (defs.firstChild) defs.removeChild(defs.firstChild);
+  const id = 'gf' + (++_fid) + '-' + Date.now();
   const NS = 'http://www.w3.org/2000/svg';
-  const filter = document.createElementNS(NS, 'filter');
-  filter.id = filterId;
-  filter.setAttribute('x', '-20%');
-  filter.setAttribute('y', '-20%');
-  filter.setAttribute('width', '140%');
-  filter.setAttribute('height', '140%');
-  filter.setAttribute('color-interpolation-filters', 'sRGB');
-
-  const feImage = document.createElementNS(NS, 'feImage');
-  feImage.setAttribute('href', mapUrl);
-  feImage.setAttribute('result', 'map');
-
-  const feDisplacement = document.createElementNS(NS, 'feDisplacementMap');
-  feDisplacement.setAttribute('in', 'SourceGraphic');
-  feDisplacement.setAttribute('in2', 'map');
-  feDisplacement.setAttribute('scale', scale.toString());
-  feDisplacement.setAttribute('xChannelSelector', 'R');
-  feDisplacement.setAttribute('yChannelSelector', 'G');
-
-  filter.appendChild(feImage);
-  filter.appendChild(feDisplacement);
-  svg.appendChild(filter);
-
-  return { filterId, cleanup: () => filter.remove() };
+  const map = genMap(w, h);
+  const f = document.createElementNS(NS, 'filter');
+  f.id = id;
+  f.setAttribute('filterUnits', 'userSpaceOnUse');
+  f.setAttribute('primitiveUnits', 'userSpaceOnUse');
+  f.setAttribute('color-interpolation-filters', 'sRGB');
+  f.setAttribute('x', String(-scale / 2));
+  f.setAttribute('y', String(-scale / 2));
+  f.setAttribute('width', String(w + scale));
+  f.setAttribute('height', String(h + scale));
+  const fi = document.createElementNS(NS, 'feImage');
+  fi.setAttribute('x', '0'); fi.setAttribute('y', '0');
+  fi.setAttribute('width', String(w)); fi.setAttribute('height', String(h));
+  fi.setAttribute('preserveAspectRatio', 'none');
+  fi.setAttribute('href', map); fi.setAttribute('result', 'map');
+  const fd = document.createElementNS(NS, 'feDisplacementMap');
+  fd.setAttribute('in', 'SourceGraphic');
+  fd.setAttribute('in2', 'map');
+  fd.setAttribute('scale', String(scale));
+  fd.setAttribute('xChannelSelector', 'R');
+  fd.setAttribute('yChannelSelector', 'G');
+  f.appendChild(fi); f.appendChild(fd);
+  defs.appendChild(f);
+  return id;
 }
-```
 
-### Step 3: Apply to the Content Layer
+function clamp(v) { return Math.max(0, Math.min(255, v)); }
 
-```css
-.glass-content {
-  filter: url(#glass-filter-id);
+// 3. Apply filter to the lens element
+function applyFilter(el, id) {
+  el.style.filter = 'url(#' + id + ')';
 }
-```
 
----
+// 4. Set up a glass component
+const defs = document.getElementById('my-defs');
+const lens = document.getElementById('my-lens');
+const copy = document.getElementById('my-copy');
+applyFilter(lens, buildFilter(defs, 30, 30, 18));
 
-## 4-Fold Symmetry (75% Performance Gain)
-
-The displacement map for a rounded rectangle has **four-fold quadrant symmetry**. Only the top-left quadrant is computed; values are mirrored with sign flips:
-
-- Top-Left → Top-Right: **negate X** displacement (mirror vertical axis)
-- Top-Left → Bottom-Left: **negate Y** displacement (mirror horizontal axis)
-- Top-Left → Bottom-Right: **negate both** X and Y
-
-This cuts per-pixel computation to **25%** of the naive approach, keeping map generation inside the 60fps frame budget even during resize animations.
-
----
-
-## Browser Quirks & Engineering Fixes
-
-### 1. Safari Filter Caching Freeze
-
-**Problem**: WebKit caches SVG filter rendering output by the filter's ID. When the displacement map changes but the filter ID stays the same, Safari serves the cached output — the glass appears frozen.
-
-**Fix**: Generate a **fresh unique filter ID** every time the map is updated. The `Date.now()` + random suffix pattern ensures uniqueness.
-
-### 2. Safari DOM Size Ceiling
-
-**Problem**: Safari has a cap on the source graphic size an SVG filter can process (approximately 2048px). Beyond this, Safari either breaks the effect into mismatched black tiles or drops it entirely.
-
-**Fix**: Keep the refracted DOM area conservative. Set filter bounds to `x="-20%" y="-20%" width="140%" height="140%"` to minimize edge clipping. Avoid refracting full-page layouts — restrict glass to small UI elements (< 800px).
-
-### 3. Chromium Sub-Pixel Specular Artifacts
-
-**Problem**: When the specular highlight pass covers the full filter bounds (not just the lens region), Chromium browsers produce 0.5px line flickering artifacts at the lens edge.
-
-**Fix**: Restrict the specular highlight to only the lens-sized region. Safari's filter implementation does not exhibit these artifacts, so the restriction is safe to apply universally.
-
-### 4. Safari Refuses to Filter `<video>`
-
-**Problem**: Safari composites `<video>` on the GPU and never hands those pixels to the SVG filter pipeline. The SVG filter simply has no effect.
-
-**Fix**: Use a **WebGL shader fallback**. Pass the displacement map as a texture to a WebGL shader that samples the video frame and applies the same refraction math. Aave's implementation uses `initRefraction(canvas, video)` for this.
-
-### 5. Coexistence of `filter` and `backdrop-filter`
-
-**Problem**: Using both `filter: url(#svg)` and `backdrop-filter` on the same element causes `backdrop-filter` to break because `filter` creates a new compositing layer.
-
-**Fix**: Split them across **sibling elements**:
-```html
-<div class="wrapper">
-  <div class="content" style="filter: url(#glass)">  <!-- Layer 1: refraction -->
-    ... children ...
-  </div>
-  <div class="frost" style="backdrop-filter: blur(8px)"/>  <!-- Layer 2: frost -->
-</div>
+// When the lens moves to position (lx, ly):
+function setLensPosition(lx, ly) {
+  lens.style.transform = 'translate(' + lx + 'px, ' + ly + 'px)';
+  copy.style.left = (-lx) + 'px';
+  copy.style.top = (-ly) + 'px';
+}
 ```
 
 ---
@@ -230,140 +176,69 @@ This cuts per-pixel computation to **25%** of the naive approach, keeping map ge
 
 ### Glass Switch
 
-The thumb is a glass lens. It refracts the track's **fill** (the `refractionTarget`) as it moves:
+The thumb is the lens (30×30 circle). Inside it: a copy of the 80×36 track, offset by `-(thumbLeft)`.
 
-```html
-<div class="switch" onclick="this.classList.toggle('active')">
-  <div class="switch-content" style="filter: url(#glass-filter)">
-    <div class="switch-track-bg"></div>
-    <div class="switch-fill" style="opacity: ${active ? 1 : 0}"></div>
-  </div>
-  <div class="switch-thumb" style="left: ${active ? 60 : 6}px">
-    <div class="glass-rim"></div>
-  </div>
-</div>
-```
+On toggle: CSS transitions the lens and thumb simultaneously; JS updates copy offset.
 
 ### Glass Slider
 
-The handle refracts the track fill beneath it. Dragging is cheap to animate — only the filter's bounding box shifts while the displacement map stays cached. The map is regenerated only on shape changes, never on position changes.
+The handle is the lens (30×30 circle). Inside it: a copy of the track fill, offset by `trackLeft - handleLeft`.
 
-```html
-<div class="slider">
-  <div class="slider-content" style="filter: url(#glass-filter)">
-    <div class="slider-track"></div>
-    <div class="slider-fill" style="width: ${pct}%"></div>
-  </div>
-  <div class="slider-handle" style="left: ${pct}%"></div>
-</div>
-```
+On drag: JS updates `lens.style.left`, `copy.style.left`, `fill.style.width` — no map regen.
 
 ### Glass Segmented Control
 
-The glass effect serves as the **selection indicator itself**, not just a thumb. A glass pill glides between options with spring physics, refracting the highlighted text beneath it.
+The glass pill IS the selection indicator. It springs between options with a cubic-bezier easing.
 
-```html
-<div class="segmented">
-  <div class="segmented-content" style="filter: url(#glass-filter)">
-    <div class="seg-pill" style="transform: translateX(${idx * 100}%)"></div>
-  </div>
-  <div class="seg-items">
-    <div class="seg-item" data-index="0">Daily</div>
-    <div class="seg-item" data-index="1">Weekly</div>
-    <div class="seg-item" data-index="2">Monthly</div>
-  </div>
-</div>
-```
+Inside it: a copy of all options, offset by `-pillLeft` to show the active one through the lens.
 
 ### Cursor Lens / Magnifier
 
-A circular glass lens that follows the user's cursor, refracting the content underneath. This is the simplest component — the lens is the glass itself, and the filter refracts the page content beneath it.
+A 80×80 circular lens follows the cursor. Inside it: a copy of the full stage content, offset by `-(cursorX - 40), -(cursorY - 40)`.
+
+On mousemove: lens follows cursor, copy offset tracks to align.
 
 ---
 
-## Tuning Parameters
+## Browser Quirks & Fixes
 
-| Parameter | Range | Effect |
-|---|---|---|
-| `refractionScale` | 0.05–0.4 | How much the content bends. Low = subtle, high = dramatic. Sliders use gentler values (0.12) than switches (0.2). |
-| `scale` | 10–50 | SVG filter scale attribute. Controls pixel displacement magnitude. |
-| `depth` | 5–30 | Virtual lens curvature. Deeper = more edge refraction. |
-| `radius` | element's border-radius | Must match the lens shape. Pill shapes use radius = height/2. |
-| `blur` (frost) | 0–12 | CSS backdrop-filter blur. 0 = no frost layer. |
+### 1. Safari Filter Caching Freeze
+
+**Fix**: Fresh filter ID + random suffix on every `buildFilter()` call.
+
+### 2. Safari DOM Size Ceiling (~2048px)
+
+**Fix**: Keep refracted DOM under ~800px. Expand filter bounds. No full-page glass.
+
+### 3. Chromium Sub-Pixel Specular Artifacts
+
+**Fix**: Restrict specular to lens-sized region only.
+
+### 4. Safari Refuses to Filter `<video>`
+
+**Fix**: WebGL shader fallback (pass displacement map as texture).
+
+### 5. `filter` and `backdrop-filter` coexistence
+
+**Fix**: Apply `filter` to lens, `backdrop-filter: blur()` to a separate frost sibling.
 
 ---
 
-## Performance Guide
+## Performance
 
-- **Position changes are free**: Moving the lens only shifts the filter bounding box — the displacement map stays cached.
-- **Map regeneration is expensive**: Only happens when lens shape changes (resize, radius change).
-- **4-fold symmetry**: Already cuts map generation cost by 75%.
-- **Map caching**: Cache generated maps by `width × height × radius` key — same-sized elements reuse the same map.
-- **Map pixel ratio**: Use `mapPixelRatio: 2` for retina, but cap to 0.3× on mobile for Tensor-class device headroom.
-
----
+- **Position changes are free**: Only transform + copy offset update
+- **Map regeneration is expensive**: Only on lens shape/size change
+- **Map caching**: Cache by `w × h` key for identically-sized elements
+- **Lens size matters**: Smaller lens = smaller map = faster generation
 
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Glass frozen / no animation | Safari cached stale filter output | Add random suffix to filter ID on every update |
-| Black tiles instead of glass | Safari DOM exceeds size ceiling (~2048px) | Reduce refracted DOM area, clamp filter bounds |
-| Fish-eye lens instead of refraction | Wrong sign on displacement scale | Set scale to negative value or flip displacement direction |
-| Content looks uniformly sheared / sliding | Map doesn't follow element's shape | Regenerate map with matching `radius` and `width/height` |
-| Glass has no effect in Safari/Firefox | Used `backdrop-filter: url(#svg)` instead of `filter: url(#svg)` | Apply filter to content via CSS `filter`, not `backdrop-filter` |
-| Sub-pixel flickering at edge | Specular highlight over full filter bounds on Chromium | Restrict specular pass to lens-sized region |
-| Glass breaks on mobile scroll | iOS Safari scrolls on separate thread | Use CSS `backdrop-filter` frost as mobile fallback |
-| Text becomes unreadable | Refraction too strong for the content | Reduce `refractionScale` and `scale` |
-
----
-
-## When to Use vs When Not To
-
-**Use this technique when:**
-- Building switches, sliders, segmented controls, navbars, cards
-- You need text to remain selectable and links clickable under the glass
-- You need cross-browser support (Chrome + Safari + Firefox)
-- You want a distinctive, premium UI look with minimal code
-
-**Do NOT use this technique when:**
-- You need the glass to refract arbitrary background content behind it (use `backdrop-filter` — but only in Chromium)
-- You're building large full-page layouts with glass (Safari DOM ceiling)
-- Performance on low-end mobile devices is critical (use CSS `backdrop-filter: blur()` as a lighter alternative)
-- You need to refract `<video>` elements in all browsers (use WebGL fallback)
-
----
-
-## Alternative: Static Map (Zero JS)
-
-For fixed-size glass elements (navbars, cards, buttons), pre-generate the displacement map as a static PNG:
-
-```bash
-# Build script to generate the PNG once
-python3 generate-map.py --width 700 --height 64 --radius 32 --output glass-map.png
-```
-
-Then use it directly in HTML (no canvas, no JS):
-
-```html
-<svg style="position:absolute;width:0;height:0">
-  <filter id="glass-static" color-interpolation-filters="sRGB">
-    <feImage href="/glass-map.png" result="map" />
-    <feDisplacementMap in="SourceGraphic" in2="map" scale="25"
-      xChannelSelector="R" yChannelSelector="G" />
-  </filter>
-</svg>
-
-<div class="glass-content" style="filter: url(#glass-static)">
-  ... children ...
-</div>
-```
-
----
-
-## References
-
-- [Aave: Building Glass for the Web](https://aave.com/design/building-glass-for-the-web) — the canonical article
-- [MDN: \<feDisplacementMap\>](https://developer.mozilla.org/en-US/docs/Web/SVG/Reference/Element/feDisplacementMap) — 96.9% global browser support
-- [WebKit Bug #245510](https://bugs.webkit.org/show_bug.cgi?id=245510) — backdrop-filter: url() with SVG filters (reported 2022, still open)
-- [W3C SVGWG Issue #1142](https://github.com/w3c/svgwg/issues/1142) — standards discussion on interoperable backdrop displacement
+| Glass frozen / no animation | Safari cached stale filter output | Add random ID suffix on every buildFilter call |
+| Black tiles where glass should be | Safari DOM ~2048px ceiling | Reduce area, expand filter bounds |
+| Content uniformly sheared | Map doesn't match lens dimensions | Regenerate with matching w/h |
+| Glass has no effect | Filter on wrong element | Apply to lens element, not wrapper |
+| Fish-eye instead of refraction | Wrong displacement direction | Use outward radial vector (dx/dist, dy/dist) |
+| Text unreadable under glass | Refraction too strong | Reduce strength/scale |
+| Glass breaks on mobile scroll | iOS compositing thread | Use backdrop-filter:blur frost as mobile fallback |

@@ -1,189 +1,402 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Glass of the Web — Cross-browser Refraction Demo</title>
-  <style>
-    :root {
-      --bg: #090a0f; --card: rgba(255,255,255,0.04);
-      --border: rgba(255,255,255,0.08); --text: #f3f4f6;
-      --muted: #6b7280; --cyan: #00d2ff; --purple: #9333ea;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      background: var(--bg); color: var(--text);
-      font: 400 16px/1.5 system-ui, -apple-system, sans-serif;
-      min-height: 100vh; padding: 2rem 1rem;
-      background-image: radial-gradient(circle at 20% 30%, rgba(0,210,255,0.1), transparent 50%),
-                        radial-gradient(circle at 80% 70%, rgba(147,51,234,0.08), transparent 50%);
-    }
-    header { text-align: center; margin-bottom: 3rem; }
-    header h1 {
-      font-size: 2.5rem; font-weight: 800; letter-spacing: -0.03em;
-      background: linear-gradient(135deg, #fff, #9ca3af);
-      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-    }
-    header p { color: var(--muted); margin-top: 0.5rem; font-size: 1.05rem; }
-
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 2rem; max-width: 1120px; margin: 0 auto; }
-    .card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 24px; padding: 1.75rem;
-      display: flex; flex-direction: column; gap: 1.5rem;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-    }
-    .card h3 { font-size: 1.1rem; font-weight: 600; }
-    .card p.desc { font-size: 0.85rem; color: var(--muted); margin-top: -1rem; }
-
-    /* === Switch === */
-    .switch { width: 120px; height: 60px; border-radius: 30px; background: rgba(255,255,255,0.06); border: 1px solid var(--border); cursor: pointer; position: relative; overflow: hidden; flex-shrink: 0; }
-    .switch.active { background: var(--cyan); border-color: rgba(0,210,255,0.4); }
-    .switch-fill { position: absolute; inset: 0; border-radius: 30px; background: linear-gradient(135deg, var(--cyan), var(--purple)); transition: opacity 0.3s; opacity: 0; }
-    .switch.active .switch-fill { opacity: 1; }
-    .switch-thumb { position: absolute; top: 6px; left: 6px; width: 48px; height: 48px; border-radius: 24px; background: rgba(255,255,255,0.95); box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 2px 4px #fff; transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1); z-index: 1; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
-    .switch.active .switch-thumb { transform: translateX(60px); }
-
-    /* === Slider === */
-    .slider-wrap { width: 100%; padding: 0.5rem 0; position: relative; }
-    .slider-track { width: 100%; height: 16px; background: rgba(255,255,255,0.08); border-radius: 8px; position: relative; overflow: hidden; }
-    .slider-fill { height: 100%; width: 50%; background: linear-gradient(90deg, var(--cyan), var(--purple)); border-radius: 8px; }
-    .slider-handle { position: absolute; top: 50%; left: 50%; width: 36px; height: 36px; border-radius: 50%; background: rgba(255,255,255,0.9); box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 2px 4px #fff; cursor: grab; transform: translate(-50%,-50%); z-index: 1; }
-    .slider-handle:active { cursor: grabbing; }
-    .slider-val { font-size: 0.85rem; color: var(--muted); margin-top: 0.5rem; text-align: center; }
-
-    /* === Segmented === */
-    .seg { display: flex; background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 14px; padding: 4px; position: relative; width: 100%; flex-shrink: 0; }
-    .seg-item { flex: 1; padding: 0.7rem 1rem; text-align: center; font-weight: 500; font-size: 0.9rem; color: var(--muted); cursor: pointer; z-index: 2; transition: color 0.3s; }
-    .seg-item.active { color: #fff; }
-    .seg-pill { position: absolute; top: 4px; left: 4px; width: calc(33.33% - 4px); height: calc(100% - 8px); border-radius: 10px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); box-shadow: 0 4px 12px rgba(0,0,0,0.2); transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1); z-index: 1; }
-
-    /* === Cursor Lens === */
-    .lens-stage { width: 100%; height: 220px; background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460); border-radius: 16px; position: relative; overflow: hidden; cursor: none; display: flex; align-items: center; justify-content: center; }
-    .lens-stage::before { content: ''; position: absolute; inset: 0; background: radial-gradient(circle at 30% 40%, rgba(0,210,255,0.15), transparent 60%), radial-gradient(circle at 70% 60%, rgba(147,51,234,0.12), transparent 50%); }
-    .lens-stage span { z-index: 0; font-size: 1.2rem; font-weight: 600; color: rgba(255,255,255,0.3); letter-spacing: 0.05em; pointer-events: none; }
-    .lens-cursor { width: 80px; height: 80px; border-radius: 50%; position: absolute; pointer-events: none; z-index: 1; box-shadow: 0 0 0 1px rgba(255,255,255,0.3), 0 8px 24px rgba(0,0,0,0.4); transform: translate(-50%,-50%); }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glass for the Web</title>
+<meta name="description" content="Cross-browser liquid glass refraction via SVG feDisplacementMap — Aave technique, works in Chrome, Safari, Firefox.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0b12;--bg2:#13141e;--border:rgba(255,255,255,0.07);--text:#ecedf2;--muted:#60637a;--blue:#4f9eff;--purple:#9b5cff;--teal:#00c8a0;--font:'Inter',system-ui,-apple-system,sans-serif}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;background-image:radial-gradient(ellipse 70% 50% at 15% 10%,rgba(79,158,255,.08) 0,transparent 70%),radial-gradient(ellipse 55% 45% at 85% 85%,rgba(155,93,255,.07) 0,transparent 65%),radial-gradient(ellipse 40% 40% at 50% 50%,rgba(0,200,160,.04) 0,transparent 60%)}
+.page{max-width:960px;margin:0 auto;padding:4rem 1.5rem 6rem}
+header{margin-bottom:3.5rem}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:100px;background:rgba(79,158,255,.1);border:1px solid rgba(79,158,255,.25);color:var(--blue);font-size:.72rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;margin-bottom:1.2rem}
+h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:800;letter-spacing:-.04em;line-height:1.1;background:linear-gradient(145deg,#fff 0,rgba(255,255,255,.45) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.9rem}
+header p{color:var(--muted);font-size:1.02rem;line-height:1.7;max-width:560px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem}
+@media(max-width:640px){.grid{grid-template-columns:1fr}}
+.card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:22px;padding:2rem 1.75rem;display:flex;flex-direction:column;gap:1rem}
+.card h3{font-size:.9rem;font-weight:600;color:rgba(255,255,255,.6)}
+.card p{font-size:.78rem;color:var(--muted);line-height:1.55}
+.demo-area{display:flex;align-items:center;justify-content:center;padding:.75rem 0}
+/* ── SWITCH ── */
+.sw-root{position:relative;width:80px;height:36px;border-radius:18px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);cursor:pointer;user-select:none;transition:background .3s,border-color .3s}
+.sw-root.on{background:rgba(79,158,255,.25);border-color:rgba(79,158,255,.4)}
+.sw-thumb{position:absolute;top:3px;left:3px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.92);box-shadow:0 2px 8px rgba(0,0,0,.35),inset 0 1px 2px #fff;transition:transform .35s cubic-bezier(.34,1.56,.64,1);pointer-events:none}
+.sw-root.on .sw-thumb{transform:translateX(44px)}
+.sw-lens{position:absolute;top:3px;left:3px;width:30px;height:30px;border-radius:50%;overflow:hidden;pointer-events:none;will-change:filter,transform;transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+.sw-root.on .sw-lens{transform:translateX(44px)}
+.sw-copy{position:absolute;width:80px;height:36px;border-radius:18px;background:rgba(255,255,255,.07)}
+.sw-copy-fill{position:absolute;inset:0;border-radius:18px;background:linear-gradient(90deg,rgba(79,158,255,.6),rgba(155,93,255,.6));opacity:0;transition:opacity .3s}
+.sw-root.on .sw-copy-fill{opacity:1}
+.sw-rim{position:absolute;top:3px;left:3px;width:30px;height:30px;border-radius:50%;pointer-events:none;border:1px solid rgba(255,255,255,.3);box-shadow:inset 0 1px 2px rgba(255,255,255,.5),0 4px 12px rgba(0,0,0,.3);transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+.sw-root.on .sw-rim{transform:translateX(44px)}
+/* ── SLIDER ── */
+.sl-root{position:relative;width:240px;height:36px;cursor:pointer}
+.sl-track{position:absolute;left:10px;right:10px;top:50%;height:6px;border-radius:3px;transform:translateY(-50%);background:rgba(255,255,255,.1);overflow:hidden}
+.sl-fill{position:absolute;inset:0;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--purple));width:50%}
+.sl-lens{position:absolute;top:3px;left:10px;width:30px;height:30px;border-radius:50%;overflow:hidden;pointer-events:none;will-change:filter,transform}
+.sl-copy{position:absolute;width:220px;height:36px;background:rgba(255,255,255,.1);border-radius:3px}
+.sl-copy-fill{position:absolute;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--purple));width:50%}
+.sl-thumb{position:absolute;top:3px;left:10px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.92);box-shadow:0 2px 8px rgba(0,0,0,.35),inset 0 1px 2px #fff;cursor:grab;touch-action:none}
+.sl-thumb:active{cursor:grabbing}
+.sl-rim{position:absolute;top:3px;left:10px;width:30px;height:30px;border-radius:50%;pointer-events:none;border:1px solid rgba(255,255,255,.3);box-shadow:inset 0 1px 2px rgba(255,255,255,.5),0 4px 12px rgba(0,0,0,.3)}
+/* ── SEGMENTED ── */
+.seg-root{position:relative;display:flex;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:4px;width:100%}
+.seg-item{flex:1;text-align:center;padding:.55rem .5rem;font-size:.82rem;font-weight:500;color:var(--muted);cursor:pointer;z-index:2;position:relative;transition:color .3s}
+.seg-item.active{color:#fff}
+.seg-lens{position:absolute;top:4px;left:4px;height:calc(100% - 8px);border-radius:10px;overflow:hidden;pointer-events:none;will-change:filter,transform;transition:transform .4s cubic-bezier(.34,1.56,.64,1),width .4s cubic-bezier(.34,1.56,.64,1)}
+.seg-copy{position:absolute;display:flex}
+.seg-copy-item{flex-shrink:0;text-align:center;padding:.55rem .5rem;font-size:.82rem;font-weight:600}
+.seg-pill{position:absolute;top:4px;left:4px;height:calc(100% - 8px);border-radius:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);pointer-events:none;transition:transform .4s cubic-bezier(.34,1.56,.64,1),width .4s cubic-bezier(.34,1.56,.64,1)}
+/* ── CURSOR LENS ── */
+.lens-stage{position:relative;width:100%;height:210px;border-radius:16px;overflow:hidden;cursor:none;background:#0d0f1c}
+.lens-content{position:relative;z-index:0;width:100%;height:100%;will-change:filter}
+.lens-blob{position:absolute;border-radius:50%;filter:blur(30px)}
+.lens-label{font-weight:800;letter-spacing:.04em}
+.lens-glass{position:absolute;width:80px;height:80px;border-radius:50%;overflow:hidden;pointer-events:none;opacity:0;transition:opacity .2s;will-change:filter,transform;top:0;left:0;transform:translate(-50%,-50%);z-index:1}
+.lens-glass.visible{opacity:1}
+.lens-copy{position:absolute;width:100%;height:210px}
+.lens-rim{position:absolute;inset:0;border-radius:50%;pointer-events:none;border:1px solid rgba(255,255,255,.3);box-shadow:inset 0 2px 4px rgba(255,255,255,.2),0 6px 20px rgba(0,0,0,.5)}
+.lens-highlight{position:absolute;inset:0;border-radius:50%;pointer-events:none;background:radial-gradient(ellipse 55% 28% at 38% 22%,rgba(255,255,255,.22) 0,transparent 60%)}
+/* ── FOOTER ── */
+.note{margin-top:2.5rem;padding:1.5rem 1.75rem;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:18px;font-size:.8rem;color:var(--muted);line-height:1.65}
+.note strong{color:rgba(255,255,255,.55)}
+code{font-family:'SF Mono','Fira Code',monospace;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-size:.88em}
+</style>
 </head>
 <body>
-  <header>
-    <h1>Glass of the Web</h1>
-    <p>Live DOM refraction via SVG feDisplacementMap — works in Chrome, Safari, Firefox</p>
-  </header>
+<div class="page">
 
-  <div class="grid">
+<header>
+  <div class="badge">✦ SVG feDisplacementMap · Chrome · Safari · Firefox</div>
+  <h1>Glass for the Web</h1>
+  <p>Real DOM-pixel refraction. The lens bends live content — text, gradients, fills — while keeping everything beneath it selectable and clickable. No Chromium-only APIs.</p>
+</header>
 
-    <!-- 1. Glass Switch -->
-    <div class="card">
-      <h3>01 Refractive Switch</h3>
-      <p class="desc">Toggle to see the thumb refract the track fill beneath it</p>
-      <div id="demo-switch" class="switch">
-        <div class="switch-fill"></div>
-        <div class="switch-thumb">○</div>
-      </div>
-    </div>
+<div class="grid">
 
-    <!-- 2. Glass Slider -->
-    <div class="card">
-      <h3>02 Refractive Slider</h3>
-      <p class="desc">Drag the handle — the fill is bent by the glass lens</p>
-      <div class="slider-wrap" id="demo-slider">
-        <div class="slider-track">
-          <div class="slider-fill" id="slider-fill-el"></div>
+  <!-- SWITCH -->
+  <div class="card">
+    <h3>01 — Glass Switch</h3>
+    <p>The thumb is a lens. It refracts the track fill beneath it as it glides.</p>
+    <div class="demo-area">
+      <div class="sw-root" id="sw-root" role="switch" aria-checked="false" tabindex="0">
+        <div class="sw-thumb" id="sw-thumb"></div>
+        <div class="sw-lens" id="sw-lens">
+          <div class="sw-copy" id="sw-copy">
+            <div class="sw-copy-fill" id="sw-copy-fill"></div>
+          </div>
         </div>
-        <div class="slider-handle" id="slider-handle-el">⋅</div>
-        <div class="slider-val" id="slider-val-el">Value: 50%</div>
+        <svg style="position:absolute;width:0;height:0;overflow:visible;pointer-events:none" aria-hidden="true"><defs id="sw-defs"></defs></svg>
+        <div class="sw-rim" id="sw-rim"></div>
       </div>
     </div>
-
-    <!-- 3. Glass Segmented Control -->
-    <div class="card">
-      <h3>03 Refractive Segmented Control</h3>
-      <p class="desc">Glass pill glides between options with spring motion</p>
-      <div id="demo-seg" class="seg">
-        <div class="seg-pill" id="seg-pill-el"></div>
-        <div class="seg-item active" data-idx="0">Daily</div>
-        <div class="seg-item" data-idx="1">Weekly</div>
-        <div class="seg-item" data-idx="2">Monthly</div>
-      </div>
-    </div>
-
-    <!-- 4. Cursor Lens -->
-    <div class="card">
-      <h3>04 Interactive Cursor Lens</h3>
-      <p class="desc">Move your mouse — the lens refracts pixels beneath it</p>
-      <div class="lens-stage" id="demo-lens">
-        <span>MOVE CURSOR HERE</span>
-        <div class="lens-cursor" id="lens-cursor-el"></div>
-      </div>
-    </div>
-
   </div>
 
-  <script type="module">
-    import { glass } from './glass-engine.js';
+  <!-- SLIDER -->
+  <div class="card">
+    <h3>02 — Glass Slider</h3>
+    <p>Drag the handle. The map is generated once; only the lens position and copy offset update during drag — constant 60fps.</p>
+    <div class="demo-area" style="flex-direction:column;gap:.6rem">
+      <div class="sl-root" id="sl-root">
+        <div class="sl-track"><div class="sl-fill" id="sl-fill"></div></div>
+        <div class="sl-lens" id="sl-lens">
+          <div class="sl-copy" id="sl-copy">
+            <div class="sl-copy-fill" id="sl-copy-fill"></div>
+          </div>
+        </div>
+        <div class="sl-thumb" id="sl-thumb"></div>
+        <svg style="position:absolute;width:0;height:0;overflow:visible;pointer-events:none" aria-hidden="true"><defs id="sl-defs"></defs></svg>
+        <div class="sl-rim" id="sl-rim"></div>
+      </div>
+      <span id="sl-label" style="font-size:.78rem;color:var(--muted)">50%</span>
+    </div>
+  </div>
 
-    /* ——— 1. Glass Switch ——— */
-    const sw = document.getElementById('demo-switch');
-    const swThumb = sw.querySelector('.switch-thumb');
-    const swGlass = glass.wrap(swThumb, { radius: 24, refractionScale: 0.2, scale: 30, blur: 0 });
-    sw.addEventListener('click', () => sw.classList.toggle('active'));
+  <!-- SEGMENTED -->
+  <div class="card">
+    <h3>03 — Glass Segmented Control</h3>
+    <p>The glass pill IS the selection indicator. It springs between options, refracting a highlighted copy of the labels.</p>
+    <div class="demo-area" style="width:100%">
+      <div style="width:100%">
+        <div class="seg-root" id="seg-root">
+          <div class="seg-lens" id="seg-lens">
+            <div class="seg-copy" id="seg-copy">
+              <div class="seg-copy-item" style="color:var(--blue)">Daily</div>
+              <div class="seg-copy-item" style="color:var(--purple)">Weekly</div>
+              <div class="seg-copy-item" style="color:var(--teal)">Monthly</div>
+            </div>
+          </div>
+          <div class="seg-item active" data-idx="0">Daily</div>
+          <div class="seg-item" data-idx="1">Weekly</div>
+          <div class="seg-item" data-idx="2">Monthly</div>
+          <svg style="position:absolute;width:0;height:0;overflow:visible;pointer-events:none" aria-hidden="true"><defs id="seg-defs"></defs></svg>
+          <div class="seg-pill" id="seg-pill"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    /* ——— 2. Glass Slider ——— */
-    const handle = document.getElementById('slider-handle-el');
-    const fill = document.getElementById('slider-fill-el');
-    const valText = document.getElementById('slider-val-el');
-    const hGlass = glass.wrap(handle, { radius: 18, refractionScale: 0.18, scale: 20, blur: 0 });
+  <!-- CURSOR LENS -->
+  <div class="card">
+    <h3>04 — Interactive Cursor Lens</h3>
+    <p>Move your cursor over the stage. The circular glass lens refracts whatever pixels are behind it.</p>
+    <div class="demo-area" style="padding:0;width:100%">
+      <div class="lens-stage" id="lens-stage">
+        <div class="lens-content" id="lens-content">
+          <div class="lens-blob" style="width:160px;height:160px;top:-20px;left:-20px;background:rgba(79,158,255,.55)"></div>
+          <div class="lens-blob" style="width:140px;height:140px;top:60px;right:-10px;background:rgba(155,93,255,.5)"></div>
+          <div class="lens-blob" style="width:120px;height:120px;bottom:-30px;left:50%;background:rgba(0,200,160,.45)"></div>
+          <div class="lens-label" style="color:rgba(255,255,255,.18);font-size:1.6rem;position:absolute;top:20px;left:20px">DeFi</div>
+          <div class="lens-label" style="color:rgba(255,255,255,.18);font-size:1.2rem;position:absolute;top:80px;left:120px">Glass</div>
+          <div class="lens-label" style="color:rgba(255,255,255,.18);font-size:1rem;position:absolute;bottom:30px;right:40px">Refract</div>
+          <div class="lens-label" style="color:rgba(255,255,255,.12);font-size:2rem;position:absolute;bottom:10px;left:30px">Web</div>
+        </div>
+        <div class="lens-glass" id="lens-glass">
+          <div class="lens-copy" id="lens-copy">
+            <div class="lens-blob" style="width:160px;height:160px;top:-20px;left:-20px;background:rgba(79,158,255,.7)"></div>
+            <div class="lens-blob" style="width:140px;height:140px;top:60px;right:-10px;background:rgba(155,93,255,.65)"></div>
+            <div class="lens-blob" style="width:120px;height:120px;bottom:-30px;left:50%;background:rgba(0,200,160,.6)"></div>
+            <div style="color:rgba(255,255,255,.35);font-size:1.6rem;font-weight:800;position:absolute;top:20px;left:20px">DeFi</div>
+            <div style="color:rgba(255,255,255,.35);font-size:1.2rem;font-weight:700;position:absolute;top:80px;left:120px">Glass</div>
+            <div style="color:rgba(255,255,255,.3);font-size:1rem;font-weight:700;position:absolute;bottom:30px;right:40px">Refract</div>
+            <div style="color:rgba(255,255,255,.25);font-size:2rem;font-weight:800;position:absolute;bottom:10px;left:30px">Web</div>
+          </div>
+          <svg style="position:absolute;width:0;height:0;overflow:visible;pointer-events:none" aria-hidden="true"><defs id="lens-defs"></defs></svg>
+          <div class="lens-rim"></div>
+          <div class="lens-highlight"></div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-    let dragging = false;
-    const track = handle.parentElement; // slider-wrap
-    const trackInner = handle.previousElementSibling; // slider-track
-    const updateSlider = (cx) => {
-      const r = track.getBoundingClientRect();
-      let pct = Math.max(0, Math.min(100, ((cx - r.left) / r.width) * 100));
-      handle.style.left = pct + '%';
-      fill.style.width = pct + '%';
-      valText.textContent = 'Value: ' + Math.round(pct) + '%';
-    };
-    handle.addEventListener('mousedown', (e) => { dragging = true; e.preventDefault(); });
-    window.addEventListener('mousemove', (e) => { if (dragging) updateSlider(e.clientX); });
-    window.addEventListener('mouseup', () => { dragging = false; });
-    handle.addEventListener('touchstart', () => { dragging = true; });
-    window.addEventListener('touchmove', (e) => { if (dragging) updateSlider(e.touches[0].clientX); });
-    window.addEventListener('touchend', () => { dragging = false; });
+</div>
 
-    /* ——— 3. Segmented Control ——— */
-    const seg = document.getElementById('demo-seg');
-    const pill = document.getElementById('seg-pill-el');
-    const items = seg.querySelectorAll('.seg-item');
-    const pGlass = glass.wrap(pill, { radius: 10, refractionScale: 0.12, scale: 15, blur: 0 });
+<div class="note">
+  <strong>How the technique works:</strong> A displacement map PNG is generated once for each glass shape.
+  An SVG <code>feDisplacementMap</code> reads its R channel (horizontal bend) and G channel (vertical bend).
+  The filter is applied via CSS <code>filter: url(#id)</code> to the <strong>lens itself</strong>
+  — a small div that contains a copy of the content offset to the correct position.
+  Moving the lens only updates its <code>transform</code> and the copy's offset.
+  Dynamic filter IDs prevent Safari's rendering-cache freeze on every shape change.
+</div>
 
-    items.forEach((item, idx) => {
-      item.addEventListener('click', () => {
-        items.forEach(i => i.classList.remove('active'));
-        item.classList.add('active');
-        pill.style.transform = `translateX(${idx * 100}%)`;
+</div>
+
+<script>
+'use strict';
+
+function genMap(w, h) {
+  const c = Object.assign(document.createElement('canvas'), { width: w, height: h });
+  const x = c.getContext('2d');
+  const d = x.createImageData(w, h).data;
+  const cx = w / 2, cy = h / 2;
+  const mr = Math.sqrt(cx * cx + cy * cy);
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const dx = x - cx, dy = y - cy, dist = Math.sqrt(dx * dx + dy * dy);
+      const t = Math.min(dist / mr, 1);
+      const s = t * t * (3 - 2 * t) * 55;
+      let r = 128, g = 128;
+      if (dist > 0.001) { r = clamp(128 + (dx / dist) * s); g = clamp(128 + (dy / dist) * s); }
+      const i = (y * w + x) * 4;
+      d[i] = r; d[i + 1] = g; d[i + 2] = 128; d[i + 3] = 255;
+    }
+  }
+  x.putImageData(new ImageData(d, w, h), 0, 0);
+  return c.toDataURL('image/png');
+}
+
+function clamp(v) { return Math.max(0, Math.min(255, v)); }
+
+let _fid = 0;
+
+function buildFilter(defs, w, h, scale) {
+  while (defs.firstChild) defs.removeChild(defs.firstChild);
+  const id = 'gf' + (++_fid) + '-' + Date.now();
+  const NS = 'http://www.w3.org/2000/svg';
+  const map = genMap(w, h);
+  const f = document.createElementNS(NS, 'filter');
+  f.id = id;
+  f.setAttribute('filterUnits', 'userSpaceOnUse');
+  f.setAttribute('primitiveUnits', 'userSpaceOnUse');
+  f.setAttribute('color-interpolation-filters', 'sRGB');
+  f.setAttribute('x', String(-scale / 2));
+  f.setAttribute('y', String(-scale / 2));
+  f.setAttribute('width', String(w + scale));
+  f.setAttribute('height', String(h + scale));
+  const fi = document.createElementNS(NS, 'feImage');
+  fi.setAttribute('x', '0'); fi.setAttribute('y', '0');
+  fi.setAttribute('width', String(w)); fi.setAttribute('height', String(h));
+  fi.setAttribute('preserveAspectRatio', 'none');
+  fi.setAttribute('href', map); fi.setAttribute('result', 'map');
+  const fd = document.createElementNS(NS, 'feDisplacementMap');
+  fd.setAttribute('in', 'SourceGraphic');
+  fd.setAttribute('in2', 'map');
+  fd.setAttribute('scale', String(scale));
+  fd.setAttribute('xChannelSelector', 'R');
+  fd.setAttribute('yChannelSelector', 'G');
+  f.appendChild(fi); f.appendChild(fd);
+  defs.appendChild(f);
+  return id;
+}
+
+function applyFilter(el, id) { el.style.filter = 'url(#' + id + ')'; }
+
+/* ── SWITCH ── */
+(function(){
+  const root = document.getElementById('sw-root');
+  const lens = document.getElementById('sw-lens');
+  const copy = document.getElementById('sw-copy');
+  const defs = document.getElementById('sw-defs');
+  applyFilter(lens, buildFilter(defs, 30, 30, 18));
+
+  function setPos(on) {
+    const lx = on ? 47 : 3;
+    copy.style.left = (-lx) + 'px';
+    copy.style.top = '-3px';
+  }
+
+  let on = false;
+  function toggle() {
+    on = !on; root.classList.toggle('on', on);
+    root.setAttribute('aria-checked', String(on));
+    setPos(on);
+  }
+
+  root.addEventListener('click', toggle);
+  root.addEventListener('keydown', function(e) {
+    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
+  });
+  setPos(false);
+})();
+
+/* ── SLIDER ── */
+(function(){
+  const root = document.getElementById('sl-root');
+  const thumb = document.getElementById('sl-thumb');
+  const fill = document.getElementById('sl-fill');
+  const lens = document.getElementById('sl-lens');
+  const copy = document.getElementById('sl-copy');
+  const copyFill = document.getElementById('sl-copy-fill');
+  const rim = document.getElementById('sl-rim');
+  const label = document.getElementById('sl-label');
+  const defs = document.getElementById('sl-defs');
+  applyFilter(lens, buildFilter(defs, 30, 30, 16));
+
+  const TL = 10, TW = 220, HW = 30, TRAV = TW - HW;
+  let progress = 0.5, dragging = false;
+
+  function setProgress(p) {
+    progress = Math.max(0, Math.min(1, p));
+    const hx = TL + progress * TRAV;
+    fill.style.width = (progress * 100) + '%';
+    thumb.style.left = hx + 'px';
+    rim.style.left = hx + 'px';
+    lens.style.left = hx + 'px';
+    copy.style.left = (TL - hx) + 'px';
+    copy.style.top = '-3px';
+    copyFill.style.width = (progress * 100) + '%';
+    label.textContent = Math.round(progress * 100) + '%';
+  }
+
+  function getP(clientX) {
+    const rect = root.getBoundingClientRect();
+    return (clientX - rect.left - TL) / TRAV;
+  }
+
+  thumb.addEventListener('mousedown', function() { dragging = true; });
+  window.addEventListener('mousemove', function(e) { if (dragging) setProgress(getP(e.clientX)); });
+  window.addEventListener('mouseup', function() { dragging = false; });
+  thumb.addEventListener('touchstart', function(e) { dragging = true; e.preventDefault(); }, { passive: false });
+  window.addEventListener('touchmove', function(e) { if (dragging) setProgress(getP(e.touches[0].clientX)); });
+  window.addEventListener('touchend', function() { dragging = false; });
+  setProgress(0.5);
+})();
+
+/* ── SEGMENTED ── */
+(function(){
+  const root = document.getElementById('seg-root');
+  const lens = document.getElementById('seg-lens');
+  const copy = document.getElementById('seg-copy');
+  const pill = document.getElementById('seg-pill');
+  const defs = document.getElementById('seg-defs');
+  const items = root.querySelectorAll('.seg-item');
+  let activeIdx = 0, built = false;
+
+  function build() {
+    const ir = items[0].getBoundingClientRect();
+    if (!built) {
+      applyFilter(lens, buildFilter(defs, Math.round(ir.width), Math.round(ir.height), 12));
+      copy.querySelectorAll('.seg-copy-item').forEach(function(el) {
+        el.style.width = ir.width + 'px';
+        el.style.height = ir.height + 'px';
+        el.style.lineHeight = ir.height + 'px';
+        el.style.padding = '0';
       });
-    });
+      built = true;
+    }
+    move(activeIdx, false);
+  }
 
-    /* ——— 4. Cursor Lens ——— */
-    const stage = document.getElementById('demo-lens');
-    const cursor = document.getElementById('lens-cursor-el');
-    const cGlass = glass.wrap(cursor, { radius: 40, refractionScale: 0.25, scale: 35, blur: 0 });
+  function move(idx, anim) {
+    const el = items[idx];
+    const pr = root.getBoundingClientRect();
+    const er = el.getBoundingClientRect();
+    const pw = er.width, ph = er.height, pl = er.left - pr.left;
+    if (!anim) {
+      lens.style.transition = 'none';
+      pill.style.transition = 'none';
+    } else {
+      lens.style.transition = 'transform .4s cubic-bezier(.34,1.56,.64,1), width .4s';
+      pill.style.transition = 'transform .4s cubic-bezier(.34,1.56,.64,1), width .4s';
+    }
+    lens.style.width = pw + 'px';
+    lens.style.height = ph + 'px';
+    lens.style.transform = 'translateX(' + pl + 'px)';
+    pill.style.width = pw + 'px';
+    pill.style.height = ph + 'px';
+    pill.style.transform = 'translateX(' + (pl - 4) + 'px)';
+    copy.style.transform = 'translateX(' + (-pl) + 'px)';
+  }
 
-    stage.addEventListener('mousemove', (e) => {
-      const r = stage.getBoundingClientRect();
-      const x = e.clientX - r.left;
-      const y = e.clientY - r.top;
-      cursor.style.left = x + 'px';
-      cursor.style.top = y + 'px';
+  items.forEach(function(item, idx) {
+    item.addEventListener('click', function() {
+      items.forEach(function(i) { i.classList.remove('active'); });
+      item.classList.add('active');
+      activeIdx = idx;
+      move(idx, true);
     });
-    stage.addEventListener('mouseleave', () => {
-      cursor.style.opacity = '0';
-    });
-    stage.addEventListener('mouseenter', () => {
-      cursor.style.opacity = '1';
-    });
-  </script>
+  });
+
+  requestAnimationFrame(function() { requestAnimationFrame(build); });
+  window.addEventListener('resize', function() { build(); });
+})();
+
+/* ── CURSOR LENS ── */
+(function(){
+  const stage = document.getElementById('lens-stage');
+  const lens = document.getElementById('lens-glass');
+  const copy = document.getElementById('lens-copy');
+  const defs = document.getElementById('lens-defs');
+  const content = document.getElementById('lens-content');
+  applyFilter(lens, buildFilter(defs, 80, 80, 24));
+
+  stage.addEventListener('mouseenter', function() { lens.classList.add('visible'); });
+  stage.addEventListener('mouseleave', function() { lens.classList.remove('visible'); });
+  stage.addEventListener('mousemove', function(e) {
+    const rect = stage.getBoundingClientRect();
+    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
+    lens.style.left = mx + 'px';
+    lens.style.top = my + 'px';
+    copy.style.left = (-mx + 40) + 'px';
+    copy.style.top = (-my + 40) + 'px';
+  });
+})();
+</script>
 </body>
 </html>
