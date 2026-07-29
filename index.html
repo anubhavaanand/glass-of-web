@@ -8,79 +8,62 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0a0b12;--bg2:#13141e;--border:rgba(255,255,255,0.07);--text:#ecedf2;--muted:#60637a;--blue:#4f9eff;--purple:#9b5cff;--teal:#00c8a0;--font:'Inter',system-ui,-apple-system,sans-serif}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;background-image:radial-gradient(ellipse 70% 50% at 15% 10%,rgba(79,158,255,.08) 0,transparent 70%),radial-gradient(ellipse 55% 45% at 85% 85%,rgba(155,93,255,.07) 0,transparent 65%),radial-gradient(ellipse 40% 40% at 50% 50%,rgba(0,200,160,.04) 0,transparent 60%)}
+:root{--bg:#0a0b12;--text:#ecedf2;--muted:#60637a;--blue:#4f9eff;--purple:#9b5cff;--teal:#00c8a0;--font:'Inter',system-ui,-apple-system,sans-serif;--glass-bg:rgba(255,255,255,0.12);--glass-bfg:rgba(255,255,255,0.2);--glass-blur:blur(12px);--glass-br:24px;--glass-border:1px solid rgba(255,255,255,0.08)}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;background-image:radial-gradient(ellipse 70% 50% at 15% 10%,rgba(79,158,255,.12) 0,transparent 70%),radial-gradient(ellipse 55% 45% at 85% 85%,rgba(155,93,255,.1) 0,transparent 65%),radial-gradient(ellipse 40% 40% at 50% 50%,rgba(0,200,160,.06) 0,transparent 60%)}
 .page{max-width:960px;margin:0 auto;padding:4rem 1.5rem 6rem}
 header{margin-bottom:3.5rem}
-.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:100px;background:rgba(79,158,255,.1);border:1px solid rgba(79,158,255,.25);color:var(--blue);font-size:.72rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;margin-bottom:1.2rem}
 h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:800;letter-spacing:-.04em;line-height:1.1;background:linear-gradient(145deg,#fff 0,rgba(255,255,255,.45) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.9rem}
 header p{color:var(--muted);font-size:1.02rem;line-height:1.7;max-width:560px}
 .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem}
 @media(max-width:640px){.grid{grid-template-columns:1fr}}
-.card{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:22px;padding:2rem 1.75rem;display:flex;flex-direction:column;gap:1rem}
+.card{position:relative;border-radius:var(--glass-br);padding:1.75rem;display:flex;flex-direction:column;gap:1rem;background:rgba(255,255,255,0.03)}
+.card-glass{position:absolute;inset:0;border-radius:var(--glass-br);background:var(--glass-bfg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);pointer-events:none}
+.card-content{position:relative;z-index:1;display:flex;flex-direction:column;gap:1rem}
 .card h3{font-size:.9rem;font-weight:600;color:rgba(255,255,255,.6)}
 .card p{font-size:.78rem;color:var(--muted);line-height:1.55}
 .demo-area{display:flex;align-items:center;justify-content:center;padding:.75rem 0}
 
+.glass-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 24px;border-radius:14px;border:none;font-family:var(--font);font-size:.88rem;font-weight:600;cursor:pointer;color:#fff;background:transparent;overflow:hidden}
+.glass-btn-bg{position:absolute;inset:0;border-radius:14px;background:var(--glass-bfg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);pointer-events:none}
+.glass-btn:hover .glass-btn-bg{background:rgba(255,255,255,.25)}
+.glass-btn span{position:relative;z-index:1}
+
 /* ── SWITCH ── */
-.sw-root{position:relative;width:80px;height:36px;border-radius:18px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);cursor:pointer;user-select:none;transition:background .35s,border-color .35s}
-.sw-root.on{background:rgba(79,158,255,.22);border-color:rgba(79,158,255,.35)}
-.sw-thumb{position:absolute;top:3px;left:3px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.92);box-shadow:0 2px 8px rgba(0,0,0,.35),inset 0 1px 2px #fff;transition:transform .4s cubic-bezier(.34,1.56,.64,1);pointer-events:none;z-index:1}
+.sw-root{position:relative;width:80px;height:36px;border-radius:18px;background:rgba(255,255,255,.07);cursor:pointer;user-select:none;transition:background .35s}
+.sw-root.on{background:rgba(79,158,255,.2)}
+.sw-glass{position:absolute;top:3px;left:3px;width:30px;height:30px;border-radius:50%;background:var(--glass-bfg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);pointer-events:none;transition:transform .4s cubic-bezier(.34,1.56,.64,1)}
+.sw-root.on .sw-glass{transform:translateX(44px)}
+.sw-thumb{position:absolute;top:3px;left:3px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.92);box-shadow:0 2px 8px rgba(0,0,0,.35);pointer-events:none;z-index:1;transition:transform .4s cubic-bezier(.34,1.56,.64,1)}
 .sw-root.on .sw-thumb{transform:translateX(44px)}
-.sw-lens-wrap{position:absolute;top:3px;left:3px;width:30px;height:30px;border-radius:50%;pointer-events:none;overflow:hidden;transition:transform .4s cubic-bezier(.34,1.56,.64,1);z-index:2}
-.sw-root.on .sw-lens-wrap{transform:translateX(44px)}
-.sw-lens{width:100%;height:100%;will-change:filter}
-.sw-copy{position:absolute;width:80px;height:36px;border-radius:18px;background:rgba(255,255,255,.07)}
-.sw-copy-fill{position:absolute;inset:0;border-radius:18px;background:linear-gradient(90deg,rgba(79,158,255,.55),rgba(155,93,255,.55));opacity:0;transition:opacity .35s}
-.sw-root.on .sw-copy-fill{opacity:1}
-.sw-frost{position:absolute;inset:0;border-radius:50%;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);pointer-events:none;z-index:3}
-.sw-rim{position:absolute;inset:0;border-radius:50%;pointer-events:none;border:1px solid rgba(255,255,255,.25);box-shadow:inset 0 .5px 1px rgba(255,255,255,.4),0 4px 16px rgba(0,0,0,.35);transition:transform .4s cubic-bezier(.34,1.56,.64,1);z-index:4}
-.sw-spec{position:absolute;inset:-2px;border-radius:50%;pointer-events:none;background:radial-gradient(ellipse 50% 25% at 35% 20%,rgba(255,255,255,.35) 0,transparent 60%);z-index:5}
-.sw-root.on .sw-rim{transform:translateX(44px)}
-.sw-root.on .sw-spec{transform:translateX(44px)}
 
 /* ── SLIDER ── */
 .sl-root{position:relative;width:240px;height:36px;cursor:pointer}
 .sl-track{position:absolute;left:10px;right:10px;top:50%;height:6px;border-radius:3px;transform:translateY(-50%);background:rgba(255,255,255,.1);overflow:hidden}
 .sl-fill{position:absolute;inset:0;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--purple))}
-.sl-lens-wrap{position:absolute;top:3px;left:10px;width:30px;height:30px;border-radius:50%;pointer-events:none;overflow:hidden}
-.sl-lens{width:100%;height:100%;will-change:filter}
-.sl-copy{position:absolute;width:220px;height:36px;border-radius:3px;background:rgba(255,255,255,.1)}
-.sl-copy-fill{position:absolute;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--purple))}
-.sl-thumb{position:absolute;top:3px;left:10px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.92);box-shadow:0 2px 8px rgba(0,0,0,.35),inset 0 1px 2px #fff;cursor:grab;touch-action:none;z-index:1}
+.sl-glass{position:absolute;top:3px;left:10px;width:30px;height:30px;border-radius:50%;background:var(--glass-bfg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);pointer-events:none}
+.sl-thumb{position:absolute;top:3px;left:10px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.92);box-shadow:0 2px 8px rgba(0,0,0,.35);cursor:grab;touch-action:none;z-index:1}
 .sl-thumb:active{cursor:grabbing}
-.sl-frost{position:absolute;top:3px;left:10px;width:30px;height:30px;border-radius:50%;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);pointer-events:none}
-.sl-rim{position:absolute;top:3px;left:10px;width:30px;height:30px;border-radius:50%;pointer-events:none;border:1px solid rgba(255,255,255,.25);box-shadow:inset 0 .5px 1px rgba(255,255,255,.4),0 4px 16px rgba(0,0,0,.35)}
-.sl-spec{position:absolute;top:1px;left:10px;width:30px;height:30px;border-radius:50%;pointer-events:none;background:radial-gradient(ellipse 50% 25% at 35% 20%,rgba(255,255,255,.35) 0,transparent 60%)}
 
 /* ── SEGMENTED ── */
-.seg-root{position:relative;display:flex;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:14px;padding:4px;width:100%}
+.seg-root{position:relative;display:flex;background:rgba(255,255,255,.04);border-radius:14px;padding:4px;width:100%}
 .seg-item{flex:1;text-align:center;padding:.55rem .5rem;font-size:.82rem;font-weight:500;color:var(--muted);cursor:pointer;z-index:2;position:relative;transition:color .3s}
 .seg-item.active{color:#fff}
-.seg-lens-wrap{position:absolute;top:4px;left:4px;height:calc(100% - 8px);border-radius:10px;pointer-events:none;overflow:hidden;transition:transform .4s cubic-bezier(.34,1.56,.64,1),width .4s cubic-bezier(.34,1.56,.64,1)}
-.seg-lens{width:100%;height:100%;will-change:filter}
-.seg-copy{position:absolute;display:flex}
-.seg-copy-item{flex-shrink:0;text-align:center;padding:.55rem .5rem;font-size:.82rem;font-weight:600}
-.seg-pill{position:absolute;top:4px;left:4px;height:calc(100% - 8px);border-radius:10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.18);pointer-events:none;transition:transform .4s cubic-bezier(.34,1.56,.64,1),width .4s cubic-bezier(.34,1.56,.64,1)}
-.seg-frost{position:absolute;top:4px;left:4px;height:calc(100% - 8px);border-radius:10px;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);pointer-events:none;transition:transform .4s cubic-bezier(.34,1.56,.64,1),width .4s cubic-bezier(.34,1.56,.64,1)}
-.seg-spec{position:absolute;top:4px;left:4px;height:calc(100% - 8px);border-radius:10px;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.15) 0,transparent 50%);transition:transform .4s cubic-bezier(.34,1.56,.64,1),width .4s cubic-bezier(.34,1.56,.64,1)}
+.seg-glass{position:absolute;top:4px;left:4px;height:calc(100% - 8px);border-radius:10px;background:var(--glass-bfg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);pointer-events:none;transition:transform .4s cubic-bezier(.34,1.56,.64,1),width .4s cubic-bezier(.34,1.56,.64,1)}
 
 /* ── CURSOR LENS ── */
 .lens-stage{position:relative;width:100%;height:210px;border-radius:16px;overflow:hidden;cursor:none;background:#0d0f1c}
-.lens-content{position:relative;z-index:0;width:100%;height:100%}
+.lens-content{position:relative;z-index:0;width:100%;height:100%;padding:20px}
 .lens-blob{position:absolute;border-radius:50%;filter:blur(30px)}
-.lens-label{font-weight:800;letter-spacing:.04em}
-.lens-glass-wrap{position:absolute;width:80px;height:80px;border-radius:50%;pointer-events:none;opacity:0;transition:opacity .2s;overflow:hidden;top:0;left:0;transform:translate(-50%,-50%);z-index:1}
+.lens-glass-wrap{position:absolute;width:80px;height:80px;border-radius:50%;pointer-events:none;opacity:0;transition:opacity .2s;top:0;left:0;transform:translate(-50%,-50%);z-index:1}
 .lens-glass-wrap.visible{opacity:1}
-.lens-glass{width:100%;height:100%;will-change:filter}
-.lens-copy{position:absolute;width:100%;height:210px}
-.lens-frost{position:absolute;inset:0;border-radius:50%;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px);pointer-events:none}
-.lens-rim{position:absolute;inset:0;border-radius:50%;pointer-events:none;border:1px solid rgba(255,255,255,.25);box-shadow:inset 0 1px 2px rgba(255,255,255,.2),0 6px 20px rgba(0,0,0,.5)}
-.lens-spec{position:absolute;inset:-2px;border-radius:50%;pointer-events:none;background:radial-gradient(ellipse 50% 22% at 38% 20%,rgba(255,255,255,.3) 0,transparent 55%)}
+.lens-glass{position:absolute;inset:0;border-radius:50%;background:var(--glass-bfg);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);pointer-events:none}
+.lens-rim{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(255,255,255,.25);box-shadow:inset 0 1px 2px rgba(255,255,255,.2),0 6px 20px rgba(0,0,0,.5);pointer-events:none}
 
 /* ── FOOTER ── */
-.note{margin-top:2.5rem;padding:1.5rem 1.75rem;background:rgba(255,255,255,.025);border:1px solid var(--border);border-radius:18px;font-size:.8rem;color:var(--muted);line-height:1.65}
-.note strong{color:rgba(255,255,255,.55)}
+.note{margin-top:2.5rem;border-radius:var(--glass-br);padding:1.5rem 1.75rem;position:relative}
+.note-bg{position:absolute;inset:0;border-radius:var(--glass-br);background:var(--glass-bg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);pointer-events:none}
+.note-content{position:relative;z-index:1;font-size:.8rem;color:var(--muted);line-height:1.65}
+.note-content strong{color:rgba(255,255,255,.55)}
 code{font-family:'SF Mono','Fira Code',monospace;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-size:.88em}
 </style>
 </head>
@@ -88,82 +71,58 @@ code{font-family:'SF Mono','Fira Code',monospace;background:rgba(255,255,255,.07
 <div class="page">
 
 <header>
-  <div class="badge">✦ SVG feDisplacementMap · Chrome · Safari · Firefox</div>
   <h1>Glass for the Web</h1>
-  <p>Real DOM-pixel refraction with chromatic aberration, specular highlight, and frost — recreating Aave's cross-browser glass technique.</p>
+  <p>Pure CSS glassmorphic components using <code>backdrop-filter: blur()</code> — matching the Aave.com visual style.</p>
 </header>
 
 <div class="grid">
 
   <!-- SWITCH -->
   <div class="card">
-    <h3>01 — Glass Switch</h3>
-    <p>The thumb is a lens refracting the track fill beneath it.</p>
-    <div class="demo-area">
-      <div class="sw-root" id="sw-root" role="switch" aria-checked="false" tabindex="0">
-        <div class="sw-thumb" id="sw-thumb"></div>
-        <div class="sw-lens-wrap" id="sw-lens-wrap">
-          <div class="sw-lens" id="sw-lens">
-            <div class="sw-copy" id="sw-copy">
-              <div class="sw-copy-fill" id="sw-copy-fill"></div>
-            </div>
-          </div>
-          <svg style="position:absolute;width:0;height:0;overflow:visible;pointer-events:none" aria-hidden="true"><defs id="sw-defs"></defs></svg>
+    <div class="card-glass"></div>
+    <div class="card-content">
+      <h3>01 — Glass Switch</h3>
+      <p>Toggle switch with a frosted glass thumb.</p>
+      <div class="demo-area">
+        <div class="sw-root" id="sw-root" role="switch" aria-checked="false" tabindex="0">
+          <div class="sw-glass" id="sw-glass"></div>
+          <div class="sw-thumb" id="sw-thumb"></div>
         </div>
-        <div class="sw-frost" id="sw-frost"></div>
-        <div class="sw-rim" id="sw-rim"></div>
-        <div class="sw-spec" id="sw-spec"></div>
       </div>
     </div>
   </div>
 
   <!-- SLIDER -->
   <div class="card">
-    <h3>02 — Glass Slider</h3>
-    <p>Drag the handle. The displacement map is generated once — only position and copy offset update during drag.</p>
-    <div class="demo-area" style="flex-direction:column;gap:.6rem">
-      <div class="sl-root" id="sl-root">
-        <div class="sl-track"><div class="sl-fill" id="sl-fill"></div></div>
-        <div class="sl-lens-wrap" id="sl-lens-wrap">
-          <div class="sl-lens" id="sl-lens">
-            <div class="sl-copy" id="sl-copy">
-              <div class="sl-copy-fill" id="sl-copy-fill"></div>
-            </div>
-          </div>
-          <svg style="position:absolute;width:0;height:0;overflow:visible;pointer-events:none" aria-hidden="true"><defs id="sl-defs"></defs></svg>
+    <div class="card-glass"></div>
+    <div class="card-content">
+      <h3>02 — Glass Slider</h3>
+      <p>Drag the handle. The glass overlay follows with backdrop-filter blur.</p>
+      <div class="demo-area" style="flex-direction:column;gap:.6rem">
+        <div class="sl-root" id="sl-root">
+          <div class="sl-track"><div class="sl-fill" id="sl-fill"></div></div>
+          <div class="sl-glass" id="sl-glass"></div>
+          <div class="sl-thumb" id="sl-thumb"></div>
         </div>
-        <div class="sl-thumb" id="sl-thumb"></div>
-        <div class="sl-frost" id="sl-frost"></div>
-        <div class="sl-rim" id="sl-rim"></div>
-        <div class="sl-spec" id="sl-spec"></div>
+        <span id="sl-label" style="font-size:.78rem;color:var(--muted)">50%</span>
       </div>
-      <span id="sl-label" style="font-size:.78rem;color:var(--muted)">50%</span>
     </div>
   </div>
 
   <!-- SEGMENTED -->
   <div class="card">
-    <h3>03 — Glass Segmented Control</h3>
-    <p>The glass pill IS the selection indicator, refracting a highlighted copy of the labels.</p>
-    <div class="demo-area" style="width:100%">
-      <div style="width:100%">
-        <div class="seg-root" id="seg-root">
-          <div class="seg-lens-wrap" id="seg-lens-wrap">
-            <div class="seg-lens" id="seg-lens">
-              <div class="seg-copy" id="seg-copy">
-                <div class="seg-copy-item" style="color:var(--blue)">Daily</div>
-                <div class="seg-copy-item" style="color:var(--purple)">Weekly</div>
-                <div class="seg-copy-item" style="color:var(--teal)">Monthly</div>
-              </div>
-            </div>
-            <svg style="position:absolute;width:0;height:0;overflow:visible;pointer-events:none" aria-hidden="true"><defs id="seg-defs"></defs></svg>
+    <div class="card-glass"></div>
+    <div class="card-content">
+      <h3>03 — Glass Segmented Control</h3>
+      <p>The selection indicator is a glass pill.</p>
+      <div class="demo-area" style="width:100%">
+        <div style="width:100%">
+          <div class="seg-root" id="seg-root">
+            <div class="seg-glass" id="seg-glass"></div>
+            <div class="seg-item active" data-idx="0">Daily</div>
+            <div class="seg-item" data-idx="1">Weekly</div>
+            <div class="seg-item" data-idx="2">Monthly</div>
           </div>
-          <div class="seg-item active" data-idx="0">Daily</div>
-          <div class="seg-item" data-idx="1">Weekly</div>
-          <div class="seg-item" data-idx="2">Monthly</div>
-          <div class="seg-pill" id="seg-pill"></div>
-          <div class="seg-frost" id="seg-frost"></div>
-          <div class="seg-spec" id="seg-spec"></div>
         </div>
       </div>
     </div>
@@ -171,35 +130,25 @@ code{font-family:'SF Mono','Fira Code',monospace;background:rgba(255,255,255,.07
 
   <!-- CURSOR LENS -->
   <div class="card">
-    <h3>04 — Interactive Cursor Lens</h3>
-    <p>Move your cursor over the stage. The circular glass lens refracts the pixels behind it with chromatic aberration.</p>
-    <div class="demo-area" style="padding:0;width:100%">
-      <div class="lens-stage" id="lens-stage">
-        <div class="lens-content" id="lens-content">
-          <div class="lens-blob" style="width:160px;height:160px;top:-20px;left:-20px;background:rgba(79,158,255,.55)"></div>
-          <div class="lens-blob" style="width:140px;height:140px;top:60px;right:-10px;background:rgba(155,93,255,.5)"></div>
-          <div class="lens-blob" style="width:120px;height:120px;bottom:-30px;left:50%;background:rgba(0,200,160,.45)"></div>
-          <div class="lens-label" style="color:rgba(255,255,255,.18);font-size:1.6rem;position:absolute;top:20px;left:20px">DeFi</div>
-          <div class="lens-label" style="color:rgba(255,255,255,.18);font-size:1.2rem;position:absolute;top:80px;left:120px">Glass</div>
-          <div class="lens-label" style="color:rgba(255,255,255,.18);font-size:1rem;position:absolute;bottom:30px;right:40px">Refract</div>
-          <div class="lens-label" style="color:rgba(255,255,255,.12);font-size:2rem;position:absolute;bottom:10px;left:30px">Web</div>
-        </div>
-        <div class="lens-glass-wrap" id="lens-glass-wrap">
-          <div class="lens-glass" id="lens-glass">
-            <div class="lens-copy" id="lens-copy">
-              <div class="lens-blob" style="width:160px;height:160px;top:-20px;left:-20px;background:rgba(79,158,255,.7)"></div>
-              <div class="lens-blob" style="width:140px;height:140px;top:60px;right:-10px;background:rgba(155,93,255,.65)"></div>
-              <div class="lens-blob" style="width:120px;height:120px;bottom:-30px;left:50%;background:rgba(0,200,160,.6)"></div>
-              <div style="color:rgba(255,255,255,.35);font-size:1.6rem;font-weight:800;position:absolute;top:20px;left:20px">DeFi</div>
-              <div style="color:rgba(255,255,255,.35);font-size:1.2rem;font-weight:700;position:absolute;top:80px;left:120px">Glass</div>
-              <div style="color:rgba(255,255,255,.3);font-size:1rem;font-weight:700;position:absolute;bottom:30px;right:40px">Refract</div>
-              <div style="color:rgba(255,255,255,.25);font-size:2rem;font-weight:800;position:absolute;bottom:10px;left:30px">Web</div>
-            </div>
+    <div class="card-glass"></div>
+    <div class="card-content">
+      <h3>04 — Interactive Cursor Lens</h3>
+      <p>Move your cursor over the stage. The circular glass lens follows.</p>
+      <div class="demo-area" style="padding:0;width:100%">
+        <div class="lens-stage" id="lens-stage">
+          <div class="lens-content" id="lens-content">
+            <div class="lens-blob" style="width:160px;height:160px;top:-20px;left:-20px;background:rgba(79,158,255,.55)"></div>
+            <div class="lens-blob" style="width:140px;height:140px;top:60px;right:-10px;background:rgba(155,93,255,.5)"></div>
+            <div class="lens-blob" style="width:120px;height:120px;bottom:-30px;left:50%;background:rgba(0,200,160,.45)"></div>
+            <div style="color:rgba(255,255,255,.18);font-size:1.6rem;font-weight:800;position:absolute;top:20px;left:20px">DeFi</div>
+            <div style="color:rgba(255,255,255,.18);font-size:1.2rem;font-weight:700;position:absolute;top:80px;left:120px">Glass</div>
+            <div style="color:rgba(255,255,255,.18);font-size:1rem;font-weight:700;position:absolute;bottom:30px;right:40px">Refract</div>
+            <div style="color:rgba(255,255,255,.12);font-size:2rem;font-weight:800;position:absolute;bottom:10px;left:30px">Web</div>
           </div>
-          <svg style="position:absolute;width:0;height:0;overflow:visible;pointer-events:none" aria-hidden="true"><defs id="lens-defs"></defs></svg>
-          <div class="lens-frost"></div>
-          <div class="lens-rim"></div>
-          <div class="lens-spec"></div>
+          <div class="lens-glass-wrap" id="lens-glass-wrap">
+            <div class="lens-glass"></div>
+            <div class="lens-rim"></div>
+          </div>
         </div>
       </div>
     </div>
@@ -208,7 +157,10 @@ code{font-family:'SF Mono','Fira Code',monospace;background:rgba(255,255,255,.07
 </div>
 
 <div class="note">
-  <strong>How it works:</strong> The filter applies <code>feDisplacementMap</code> with three separate passes for R, G, B channels at different scales (1.2×, 1.0×, 0.8×) — creating chromatic aberration. A <code>feFlood(128)</code> + <code>feImage</code> + <code>feComposite(over)</code> builds the displacement map. <code>backdrop-filter: blur()</code> on a sibling frost layer adds the glassy blur. A CSS radial gradient creates the specular highlight.
+  <div class="note-bg"></div>
+  <div class="note-content">
+    <strong>How it works:</strong> Each component uses <code>backdrop-filter: blur(12px)</code> with <code>rgba(255, 255, 255, 0.2)</code> background on an absolutely-positioned glass layer. The content sits above it at <code>z-index: 1</code>. This is the exact technique used on <strong>Aave.com</strong> for their glass cards — no SVG filters needed.
+  </div>
 </div>
 
 </div>
@@ -216,184 +168,19 @@ code{font-family:'SF Mono','Fira Code',monospace;background:rgba(255,255,255,.07
 <script>
 'use strict';
 
-function genMap(w, h) {
-  const c = Object.assign(document.createElement('canvas'), { width: w, height: h });
-  const x = c.getContext('2d');
-  const d = x.createImageData(w, h).data;
-  const cx = w / 2, cy = h / 2;
-  const mr = Math.sqrt(cx * cx + cy * cy);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const dx = x - cx, dy = y - cy, dist = Math.sqrt(dx * dx + dy * dy);
-      const t = Math.min(dist / mr, 1);
-      const s = t * t * (3 - 2 * t) * 60;
-      let r = 128, g = 128;
-      if (dist > 0.001) { r = clamp(128 + (dx / dist) * s); g = clamp(128 + (dy / dist) * s); }
-      const i = (y * w + x) * 4;
-      d[i] = r; d[i + 1] = g; d[i + 2] = 128; d[i + 3] = 255;
-    }
-  }
-  x.putImageData(new ImageData(d, w, h), 0, 0);
-  return c.toDataURL('image/png');
-}
-
-function clamp(v) { return Math.max(0, Math.min(255, v)); }
-
-let _fid = 0;
-
-function el(name) { return document.createElementNS('http://www.w3.org/2000/svg', name); }
-
-function buildFilter(defs, w, h, scale) {
-  while (defs.firstChild) defs.removeChild(defs.firstChild);
-  const id = 'gf' + (++_fid) + '-' + Date.now();
-  const map = genMap(w, h);
-  const pad = Math.round(scale * 0.6);
-  const f = el('filter');
-  f.id = id;
-  f.setAttribute('filterUnits', 'userSpaceOnUse');
-  f.setAttribute('primitiveUnits', 'userSpaceOnUse');
-  f.setAttribute('color-interpolation-filters', 'sRGB');
-  f.setAttribute('x', String(-pad));
-  f.setAttribute('y', String(-pad));
-  f.setAttribute('width', String(w + pad * 2));
-  f.setAttribute('height', String(h + pad * 2));
-
-  // Map background: neutral gray (128 = no displacement)
-  const fl = el('feFlood');
-  fl.setAttribute('flood-color', 'rgb(128,128,128)');
-  fl.setAttribute('flood-opacity', '1');
-  fl.setAttribute('result', 'mapBg');
-  f.appendChild(fl);
-
-  // Lens map
-  const img = el('feImage');
-  img.setAttribute('x', '0'); img.setAttribute('y', '0');
-  img.setAttribute('width', String(w)); img.setAttribute('height', String(h));
-  img.setAttribute('preserveAspectRatio', 'none');
-  img.setAttribute('href', map);
-  img.setAttribute('result', 'rawMap');
-  f.appendChild(img);
-
-  // Composite: rawMap over mapBg → map
-  const ov = el('feComposite');
-  ov.setAttribute('in', 'rawMap');
-  ov.setAttribute('in2', 'mapBg');
-  ov.setAttribute('operator', 'over');
-  ov.setAttribute('result', 'map');
-  f.appendChild(ov);
-
-  // Smooth map
-  const bl = el('feGaussianBlur');
-  bl.setAttribute('in', 'map');
-  bl.setAttribute('stdDeviation', `${0.5 / w} ${0.5 / h}`);
-  bl.setAttribute('result', 'smoothMap');
-  f.appendChild(bl);
-
-  // ── Channel splitting with chromatic aberration ──
-  // Red: more displacement (scale * 1.2)
-  const dR = el('feDisplacementMap');
-  dR.setAttribute('in', 'SourceGraphic');
-  dR.setAttribute('in2', 'smoothMap');
-  dR.setAttribute('scale', String(scale * 1.2));
-  dR.setAttribute('xChannelSelector', 'R');
-  dR.setAttribute('yChannelSelector', 'G');
-  dR.setAttribute('result', 'displacedR');
-  f.appendChild(dR);
-
-  // Green: normal displacement (scale * 1.0)
-  const dG = el('feDisplacementMap');
-  dG.setAttribute('in', 'SourceGraphic');
-  dG.setAttribute('in2', 'smoothMap');
-  dG.setAttribute('scale', String(scale * 1.0));
-  dG.setAttribute('xChannelSelector', 'R');
-  dG.setAttribute('yChannelSelector', 'G');
-  dG.setAttribute('result', 'displacedG');
-  f.appendChild(dG);
-
-  // Blue: less displacement (scale * 0.8)
-  const dB = el('feDisplacementMap');
-  dB.setAttribute('in', 'SourceGraphic');
-  dB.setAttribute('in2', 'smoothMap');
-  dB.setAttribute('scale', String(scale * 0.8));
-  dB.setAttribute('xChannelSelector', 'R');
-  dB.setAttribute('yChannelSelector', 'G');
-  dB.setAttribute('result', 'displacedB');
-  f.appendChild(dB);
-
-  // Extract R from displacedR
-  const mR = el('feColorMatrix');
-  mR.setAttribute('type', 'matrix');
-  mR.setAttribute('values', '1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0');
-  mR.setAttribute('result', 'chanR');
-  f.appendChild(mR);
-
-  // Extract G from displacedG
-  const mG = el('feColorMatrix');
-  mG.setAttribute('type', 'matrix');
-  mG.setAttribute('values', '0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0');
-  mG.setAttribute('result', 'chanG');
-  f.appendChild(mG);
-
-  // Extract B from displacedB
-  const mB = el('feColorMatrix');
-  mB.setAttribute('type', 'matrix');
-  mB.setAttribute('values', '0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0');
-  mB.setAttribute('result', 'chanB');
-  f.appendChild(mB);
-
-  // Merge R+G: arithmetic add (k2=1, k3=1)
-  const mr1 = el('feComposite');
-  mr1.setAttribute('in', 'chanR');
-  mr1.setAttribute('in2', 'chanG');
-  mr1.setAttribute('operator', 'arithmetic');
-  mr1.setAttribute('k1', '0'); mr1.setAttribute('k2', '1');
-  mr1.setAttribute('k3', '1'); mr1.setAttribute('k4', '0');
-  mr1.setAttribute('result', 'mergedRG');
-  f.appendChild(mr1);
-
-  // Merge RG+B
-  const mr2 = el('feComposite');
-  mr2.setAttribute('in', 'mergedRG');
-  mr2.setAttribute('in2', 'chanB');
-  mr2.setAttribute('operator', 'arithmetic');
-  mr2.setAttribute('k1', '0'); mr2.setAttribute('k2', '1');
-  mr2.setAttribute('k3', '1'); mr2.setAttribute('k4', '0');
-  mr2.setAttribute('result', 'out');
-  f.appendChild(mr2);
-
-  defs.appendChild(f);
-  return id;
-}
-
-function applyFilter(el, id) {
-  el.style.filter = 'url(#' + id + ')';
-}
-
 /* ── SWITCH ── */
 (function(){
   const root = document.getElementById('sw-root');
-  const wrap = document.getElementById('sw-lens-wrap');
-  const lens = document.getElementById('sw-lens');
-  const copy = document.getElementById('sw-copy');
-  const defs = document.getElementById('sw-defs');
-  applyFilter(lens, buildFilter(defs, 30, 30, 16));
-
+  const glass = document.getElementById('sw-glass');
   let on = false;
-  function setPos(state) {
-    const lx = state ? 47 : 3;
-    copy.style.left = (-lx) + 'px';
-    copy.style.top = '-3px';
-  }
   function toggle() {
     on = !on; root.classList.toggle('on', on);
     root.setAttribute('aria-checked', String(on));
-    setPos(on);
   }
   root.addEventListener('click', toggle);
   root.addEventListener('keydown', function(e) {
     if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
   });
-  setPos(false);
 })();
 
 /* ── SLIDER ── */
@@ -401,17 +188,8 @@ function applyFilter(el, id) {
   const root = document.getElementById('sl-root');
   const thumb = document.getElementById('sl-thumb');
   const fill = document.getElementById('sl-fill');
-  const wrap = document.getElementById('sl-lens-wrap');
-  const lens = document.getElementById('sl-lens');
-  const copy = document.getElementById('sl-copy');
-  const copyFill = document.getElementById('sl-copy-fill');
-  const frost = document.getElementById('sl-frost');
-  const rim = document.getElementById('sl-rim');
-  const spec = document.getElementById('sl-spec');
+  const glass = document.getElementById('sl-glass');
   const label = document.getElementById('sl-label');
-  const defs = document.getElementById('sl-defs');
-  applyFilter(lens, buildFilter(defs, 30, 30, 14));
-
   const TL = 10, TW = 220, HW = 30, TRAV = TW - HW;
   let progress = 0.5, dragging = false;
 
@@ -421,13 +199,7 @@ function applyFilter(el, id) {
     const pct = (progress * 100) + '%';
     fill.style.width = pct;
     thumb.style.left = hx + 'px';
-    wrap.style.left = hx + 'px';
-    frost.style.left = hx + 'px';
-    rim.style.left = hx + 'px';
-    spec.style.left = hx + 'px';
-    copy.style.left = (TL - hx) + 'px';
-    copy.style.top = '-3px';
-    copyFill.style.width = pct;
+    glass.style.left = hx + 'px';
     label.textContent = Math.round(progress * 100) + '%';
   }
   function getP(cx) {
@@ -446,44 +218,20 @@ function applyFilter(el, id) {
 /* ── SEGMENTED ── */
 (function(){
   const root = document.getElementById('seg-root');
-  const wrap = document.getElementById('seg-lens-wrap');
-  const lens = document.getElementById('seg-lens');
-  const copy = document.getElementById('seg-copy');
-  const pill = document.getElementById('seg-pill');
-  const frost = document.getElementById('seg-frost');
-  const spec = document.getElementById('seg-spec');
-  const defs = document.getElementById('seg-defs');
+  const glass = document.getElementById('seg-glass');
   const items = root.querySelectorAll('.seg-item');
-  let activeIdx = 0, built = false;
-
-  function build() {
-    const ir = items[0].getBoundingClientRect();
-    if (!built) {
-      applyFilter(lens, buildFilter(defs, Math.round(ir.width), Math.round(ir.height), 10));
-      copy.querySelectorAll('.seg-copy-item').forEach(function(el) {
-        el.style.width = ir.width + 'px';
-        el.style.height = ir.height + 'px';
-        el.style.lineHeight = ir.height + 'px';
-        el.style.padding = '0';
-      });
-      built = true;
-    }
-    move(activeIdx, false);
-  }
+  let activeIdx = 0;
 
   function move(idx, anim) {
     const el = items[idx];
     const pr = root.getBoundingClientRect();
     const er = el.getBoundingClientRect();
     const pw = er.width, ph = er.height, pl = er.left - pr.left;
-    const trans = !anim ? 'none' : 'transform .4s cubic-bezier(.34,1.56,.64,1), width .4s';
-    [wrap, pill, frost, spec].forEach(function(e) { e.style.transition = trans; });
-    [wrap, pill, frost, spec].forEach(function(e) {
-      e.style.width = pw + 'px';
-      e.style.height = ph + 'px';
-      e.style.transform = 'translateX(' + pl + 'px)';
-    });
-    copy.style.transform = 'translateX(' + (-pl) + 'px)';
+    const trans = anim ? 'transform .4s cubic-bezier(.34,1.56,.64,1), width .4s' : 'none';
+    glass.style.transition = trans;
+    glass.style.width = pw + 'px';
+    glass.style.height = ph + 'px';
+    glass.style.transform = 'translateX(' + pl + 'px)';
   }
 
   items.forEach(function(item, idx) {
@@ -494,28 +242,21 @@ function applyFilter(el, id) {
       move(idx, true);
     });
   });
-  requestAnimationFrame(function() { requestAnimationFrame(build); });
-  window.addEventListener('resize', function() { build(); });
+  requestAnimationFrame(function() { requestAnimationFrame(function() { move(0, false); }); });
+  window.addEventListener('resize', function() { move(activeIdx, false); });
 })();
 
 /* ── CURSOR LENS ── */
 (function(){
   const stage = document.getElementById('lens-stage');
   const wrap = document.getElementById('lens-glass-wrap');
-  const lens = document.getElementById('lens-glass');
-  const copy = document.getElementById('lens-copy');
-  const defs = document.getElementById('lens-defs');
-  applyFilter(lens, buildFilter(defs, 80, 80, 22));
 
   stage.addEventListener('mouseenter', function() { wrap.classList.add('visible'); });
   stage.addEventListener('mouseleave', function() { wrap.classList.remove('visible'); });
   stage.addEventListener('mousemove', function(e) {
     const rect = stage.getBoundingClientRect();
-    const mx = e.clientX - rect.left, my = e.clientY - rect.top;
-    wrap.style.left = mx + 'px';
-    wrap.style.top = my + 'px';
-    copy.style.left = (-mx + 40) + 'px';
-    copy.style.top = (-my + 40) + 'px';
+    wrap.style.left = (e.clientX - rect.left) + 'px';
+    wrap.style.top = (e.clientY - rect.top) + 'px';
   });
 })();
 </script>
