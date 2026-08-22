@@ -3,260 +3,283 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Glass for the Web</title>
+<title>Glass for the Web — Aave technique replica</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700;14..32,800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0a0b12;--text:#ecedf2;--muted:#60637a;--blue:#4f9eff;--purple:#9b5cff;--teal:#00c8a0;--font:'Inter',system-ui,-apple-system,sans-serif;--glass-bg:rgba(255,255,255,0.12);--glass-bfg:rgba(255,255,255,0.2);--glass-blur:blur(12px);--glass-br:24px;--glass-border:1px solid rgba(255,255,255,0.08)}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;background-image:radial-gradient(ellipse 70% 50% at 15% 10%,rgba(79,158,255,.12) 0,transparent 70%),radial-gradient(ellipse 55% 45% at 85% 85%,rgba(155,93,255,.1) 0,transparent 65%),radial-gradient(ellipse 40% 40% at 50% 50%,rgba(0,200,160,.06) 0,transparent 60%)}
-.page{max-width:960px;margin:0 auto;padding:4rem 1.5rem 6rem}
-header{margin-bottom:3.5rem}
-h1{font-size:clamp(2rem,5vw,3.2rem);font-weight:800;letter-spacing:-.04em;line-height:1.1;background:linear-gradient(145deg,#fff 0,rgba(255,255,255,.45) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:.9rem}
-header p{color:var(--muted);font-size:1.02rem;line-height:1.7;max-width:560px}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.25rem}
-@media(max-width:640px){.grid{grid-template-columns:1fr}}
-.card{position:relative;border-radius:var(--glass-br);padding:1.75rem;display:flex;flex-direction:column;gap:1rem;background:rgba(255,255,255,0.03)}
-.card-glass{position:absolute;inset:0;border-radius:var(--glass-br);background:var(--glass-bfg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);pointer-events:none}
-.card-content{position:relative;z-index:1;display:flex;flex-direction:column;gap:1rem}
-.card h3{font-size:.9rem;font-weight:600;color:rgba(255,255,255,.6)}
-.card p{font-size:.78rem;color:var(--muted);line-height:1.55}
-.demo-area{display:flex;align-items:center;justify-content:center;padding:.75rem 0}
+:root{--bg:#0b0c11;--text:#ecedf2;--muted:#8a8ea3;--font:'Inter',system-ui,sans-serif}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
+.page{max-width:880px;margin:0 auto;padding:4rem 1.5rem 6rem}
+h1{font-size:clamp(1.9rem,4.5vw,2.9rem);font-weight:800;letter-spacing:-.03em;margin-bottom:.7rem;background:linear-gradient(145deg,#fff 30%,rgba(255,255,255,.45));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.sub{color:var(--muted);font-size:.95rem;line-height:1.6;max-width:600px;margin-bottom:2.6rem}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem}
+@media(max-width:700px){.grid{grid-template-columns:1fr}}
+.panel{position:relative;border-radius:22px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);padding:1.6rem;display:flex;flex-direction:column;gap:.9rem;min-height:170px}
+.panel h3{font-size:.82rem;font-weight:600;color:rgba(255,255,255,.55);letter-spacing:.02em}
+.panel p{font-size:.75rem;color:var(--muted);line-height:1.55}
+.demo-area{flex:1;display:flex;align-items:center;justify-content:center}
 
-.glass-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 24px;border-radius:14px;border:none;font-family:var(--font);font-size:.88rem;font-weight:600;cursor:pointer;color:#fff;background:transparent;overflow:hidden}
-.glass-btn-bg{position:absolute;inset:0;border-radius:14px;background:var(--glass-bfg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);pointer-events:none}
-.glass-btn:hover .glass-btn-bg{background:rgba(255,255,255,.25)}
-.glass-btn span{position:relative;z-index:1}
-
-/* ── SWITCH ── */
-.sw-root{position:relative;width:80px;height:36px;border-radius:18px;background:rgba(255,255,255,.07);cursor:pointer;user-select:none;transition:background .35s}
-.sw-root.on{background:rgba(79,158,255,.2)}
-.sw-glass{position:absolute;top:3px;left:3px;width:30px;height:30px;border-radius:50%;background:var(--glass-bfg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);pointer-events:none;transition:transform .4s cubic-bezier(.34,1.56,.64,1)}
-.sw-root.on .sw-glass{transform:translateX(44px)}
-.sw-thumb{position:absolute;top:3px;left:3px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.92);box-shadow:0 2px 8px rgba(0,0,0,.35);pointer-events:none;z-index:1;transition:transform .4s cubic-bezier(.34,1.56,.64,1)}
-.sw-root.on .sw-thumb{transform:translateX(44px)}
+/* ── SWITCH (44×22 thumb like Aave's) ── */
+.sw{position:relative;width:120px;height:52px;border-radius:26px;background:rgba(255,255,255,.08);cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
+.sw-fill{position:absolute;inset:0;border-radius:17px;background:linear-gradient(90deg,#4f8dff,#9b5cff);opacity:.28;transition:opacity .35s}
+.sw.on .sw-fill{opacity:1}
+.sw-thumb{position:absolute;top:8px;left:8px;width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,.95);box-shadow:0 2px 6px rgba(0,0,0,.35);transition:transform .38s cubic-bezier(.34,1.56,.64,1)}
+.sw.on .sw-thumb{transform:translateX(68px)}
 
 /* ── SLIDER ── */
-.sl-root{position:relative;width:240px;height:36px;cursor:pointer}
-.sl-track{position:absolute;left:10px;right:10px;top:50%;height:6px;border-radius:3px;transform:translateY(-50%);background:rgba(255,255,255,.1);overflow:hidden}
-.sl-fill{position:absolute;inset:0;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--purple))}
-.sl-glass{position:absolute;top:3px;left:10px;width:30px;height:30px;border-radius:50%;background:var(--glass-bfg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);pointer-events:none}
-.sl-thumb{position:absolute;top:3px;left:10px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,.92);box-shadow:0 2px 8px rgba(0,0,0,.35);cursor:grab;touch-action:none;z-index:1}
-.sl-thumb:active{cursor:grabbing}
+.sl{position:relative;width:260px;height:52px;cursor:pointer;touch-action:none}
+.sl-track{position:absolute;left:6px;right:6px;top:50%;height:40px;transform:translateY(-50%);border-radius:20px;background:rgba(255,255,255,.09);overflow:hidden}
+.sl-fill{position:absolute;top:5px;bottom:5px;left:0;border-radius:15px;background:linear-gradient(90deg,#4f8dff,#9b5cff)}
+.sl-handle{position:absolute;top:11px;width:30px;height:30px;border-radius:15px;background:rgba(255,255,255,.94);box-shadow:0 2px 10px rgba(0,0,0,.45),inset 0 1px 2px #fff;cursor:grab;pointer-events:none}
+.sl-val{font-size:.75rem;color:var(--muted);margin-top:.5rem;text-align:center}
 
-/* ── SEGMENTED ── */
-.seg-root{position:relative;display:flex;background:rgba(255,255,255,.04);border-radius:14px;padding:4px;width:100%}
-.seg-item{flex:1;text-align:center;padding:.55rem .5rem;font-size:.82rem;font-weight:500;color:var(--muted);cursor:pointer;z-index:2;position:relative;transition:color .3s}
-.seg-item.active{color:#fff}
-.seg-glass{position:absolute;top:4px;left:4px;height:calc(100% - 8px);border-radius:10px;background:var(--glass-bfg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);pointer-events:none;transition:transform .4s cubic-bezier(.34,1.56,.64,1),width .4s cubic-bezier(.34,1.56,.64,1)}
+/* ── TOGGLE GROUP ── */
+.tg{position:relative;display:flex;width:100%;background:rgba(255,255,255,.05);border-radius:14px;padding:4px;gap:0}
+.tg-item{flex:1;text-align:center;padding:.75rem .4rem;font-size:.82rem;font-weight:600;color:var(--muted);cursor:pointer;position:relative;z-index:2;transition:color .25s;user-select:none}
+.tg-item.active{color:#fff}
+.tg-hl{position:absolute;top:4px;left:4px;height:calc(100% - 8px);border-radius:10px;background:linear-gradient(90deg,rgba(79,141,255,.85),rgba(155,92,255,.85));z-index:0}
 
-/* ── CURSOR LENS ── */
-.lens-stage{position:relative;width:100%;height:210px;border-radius:16px;overflow:hidden;cursor:none;background:#0d0f1c}
-.lens-content{position:relative;z-index:0;width:100%;height:100%;padding:20px}
-.lens-blob{position:absolute;border-radius:50%;filter:blur(30px)}
-.lens-glass-wrap{position:absolute;width:80px;height:80px;border-radius:50%;pointer-events:none;opacity:0;transition:opacity .2s;top:0;left:0;transform:translate(-50%,-50%);z-index:1}
-.lens-glass-wrap.visible{opacity:1}
-.lens-glass{position:absolute;inset:0;border-radius:50%;background:var(--glass-bfg);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);pointer-events:none}
-.lens-rim{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(255,255,255,.25);box-shadow:inset 0 1px 2px rgba(255,255,255,.2),0 6px 20px rgba(0,0,0,.5);pointer-events:none}
+/* ── CURSOR LENS over photo ── */
+.stage{position:relative;width:100%;aspect-ratio:16/9;border-radius:18px;overflow:hidden;cursor:none;background:#111}
+.stage-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.stage-label{position:absolute;z-index:0;font-weight:800;letter-spacing:.02em;color:rgba(255,255,255,.85);text-shadow:0 1px 8px rgba(0,0,0,.4)}
 
-/* ── FOOTER ── */
-.note{margin-top:2.5rem;border-radius:var(--glass-br);padding:1.5rem 1.75rem;position:relative}
-.note-bg{position:absolute;inset:0;border-radius:var(--glass-br);background:var(--glass-bg);-webkit-backdrop-filter:var(--glass-blur);backdrop-filter:var(--glass-blur);pointer-events:none}
-.note-content{position:relative;z-index:1;font-size:.8rem;color:var(--muted);line-height:1.65}
-.note-content strong{color:rgba(255,255,255,.55)}
-code{font-family:'SF Mono','Fira Code',monospace;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-size:.88em}
+/* hero */
+.hero{position:relative;border-radius:24px;overflow:hidden;margin-bottom:1.4rem;aspect-ratio:21/9;background:#151723}
+.cosmic{position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 20% 20%,rgba(79,141,255,.5),transparent 60%),radial-gradient(ellipse 50% 70% at 78% 30%,rgba(155,92,255,.45),transparent 65%),radial-gradient(ellipse 70% 60% at 50% 90%,rgba(0,200,160,.35),transparent 60%),radial-gradient(ellipse 30% 30% at 62% 62%,rgba(255,120,180,.25),transparent 70%),#0d1024}
+.stage-cosmic{background:radial-gradient(ellipse 55% 75% at 25% 30%,rgba(64,120,255,.55),transparent 62%),radial-gradient(ellipse 45% 60% at 72% 65%,rgba(170,80,255,.5),transparent 60%),radial-gradient(ellipse 40% 40% at 45% 85%,rgba(0,220,190,.3),transparent 65%),#0a0c1e}
+.hero-chip{position:absolute;display:flex;align-items:center;gap:.5rem;padding:.55rem .9rem;border-radius:999px;background:rgba(20,22,32,.55);color:#fff;font-size:.8rem;font-weight:600;backdrop-filter:none}
+.chip-dot{width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#7aa2ff,#b48cff)}
+.tag{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#7aa2ff;margin-bottom:.8rem}
+code{font-family:'SF Mono',monospace;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-size:.85em}
 </style>
 </head>
 <body>
 <div class="page">
 
-<header>
+  <div class="tag">feDisplacementMap · objectBoundingBox · cross-browser</div>
   <h1>Glass for the Web</h1>
-  <p>Pure CSS glassmorphic components using <code>backdrop-filter: blur()</code> — matching the Aave.com visual style.</p>
-</header>
+  <p class="sub">Faithful replica of Aave's glass technique — a generated displacement-map PNG drives an SVG filter that bends the content's own pixels inside a lens-shaped region. Works in Chrome, Safari and Firefox.</p>
 
-<div class="grid">
+  <!-- HERO: static lens over imagery -->
+  <div class="hero" id="hero">
+    <div class="cosmic"></div>
+    <div class="hero-chip" style="top:18%;left:12%">✦ Liquid Glass</div>
+    <div class="hero-chip" style="bottom:16%;right:14%"><span class="chip-dot"></span>Aave Glass</div>
+  </div>
 
-  <!-- SWITCH -->
-  <div class="card">
-    <div class="card-glass"></div>
-    <div class="card-content">
-      <h3>01 — Glass Switch</h3>
-      <p>Toggle switch with a frosted glass thumb.</p>
+  <div class="grid">
+
+    <!-- SWITCH -->
+    <div class="panel">
+      <h3>01 · Switch</h3>
+      <p>The thumb is the lens. It bends a copy of the track fill beneath it.</p>
       <div class="demo-area">
-        <div class="sw-root" id="sw-root" role="switch" aria-checked="false" tabindex="0">
-          <div class="sw-glass" id="sw-glass"></div>
-          <div class="sw-thumb" id="sw-thumb"></div>
+        <div class="sw" id="sw" role="switch" aria-checked="false" tabindex="0"></div>
+      </div>
+    </div>
+
+    <!-- SLIDER -->
+    <div class="panel">
+      <h3>02 · Slider</h3>
+      <p>Dragging shifts only the filter region — the map never regenerates.</p>
+      <div class="demo-area" style="flex-direction:column">
+        <div class="sl" id="sl">
+          <div class="sl-track"><div class="sl-fill" id="slFill"></div></div>
+          <div class="sl-handle" id="slHandle"></div>
+        </div>
+        <div class="sl-val" id="slVal">50%</div>
+      </div>
+    </div>
+
+    <!-- TOGGLE GROUP -->
+    <div class="panel">
+      <h3>03 · Toggle group</h3>
+      <p>The glass is the selection indicator, bending a highlighted pill as it springs between options.</p>
+      <div class="demo-area">
+        <div class="tg" id="tg">
+          <div class="tg-hl" id="tgHl"></div>
+          <div class="tg-item active">Daily</div>
+          <div class="tg-item">Weekly</div>
+          <div class="tg-item">Monthly</div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- SLIDER -->
-  <div class="card">
-    <div class="card-glass"></div>
-    <div class="card-content">
-      <h3>02 — Glass Slider</h3>
-      <p>Drag the handle. The glass overlay follows with backdrop-filter blur.</p>
-      <div class="demo-area" style="flex-direction:column;gap:.6rem">
-        <div class="sl-root" id="sl-root">
-          <div class="sl-track"><div class="sl-fill" id="sl-fill"></div></div>
-          <div class="sl-glass" id="sl-glass"></div>
-          <div class="sl-thumb" id="sl-thumb"></div>
-        </div>
-        <span id="sl-label" style="font-size:.78rem;color:var(--muted)">50%</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- SEGMENTED -->
-  <div class="card">
-    <div class="card-glass"></div>
-    <div class="card-content">
-      <h3>03 — Glass Segmented Control</h3>
-      <p>The selection indicator is a glass pill.</p>
-      <div class="demo-area" style="width:100%">
-        <div style="width:100%">
-          <div class="seg-root" id="seg-root">
-            <div class="seg-glass" id="seg-glass"></div>
-            <div class="seg-item active" data-idx="0">Daily</div>
-            <div class="seg-item" data-idx="1">Weekly</div>
-            <div class="seg-item" data-idx="2">Monthly</div>
-          </div>
+    <!-- CURSOR LENS -->
+    <div class="panel">
+      <h3>04 · Cursor lens</h3>
+      <p>160×160 circular lens refracting live content under the pointer.</p>
+      <div class="demo-area" style="padding:0">
+        <div class="stage" id="stage">
+          <div class="cosmic stage-cosmic"></div>
+          <div class="stage-label" style="top:12%;left:8%;font-size:1.3rem">Nebula</div>
+          <div class="stage-label" style="bottom:14%;right:10%;font-size:1rem">Deep Field</div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- CURSOR LENS -->
-  <div class="card">
-    <div class="card-glass"></div>
-    <div class="card-content">
-      <h3>04 — Interactive Cursor Lens</h3>
-      <p>Move your cursor over the stage. The circular glass lens follows.</p>
-      <div class="demo-area" style="padding:0;width:100%">
-        <div class="lens-stage" id="lens-stage">
-          <div class="lens-content" id="lens-content">
-            <div class="lens-blob" style="width:160px;height:160px;top:-20px;left:-20px;background:rgba(79,158,255,.55)"></div>
-            <div class="lens-blob" style="width:140px;height:140px;top:60px;right:-10px;background:rgba(155,93,255,.5)"></div>
-            <div class="lens-blob" style="width:120px;height:120px;bottom:-30px;left:50%;background:rgba(0,200,160,.45)"></div>
-            <div style="color:rgba(255,255,255,.18);font-size:1.6rem;font-weight:800;position:absolute;top:20px;left:20px">DeFi</div>
-            <div style="color:rgba(255,255,255,.18);font-size:1.2rem;font-weight:700;position:absolute;top:80px;left:120px">Glass</div>
-            <div style="color:rgba(255,255,255,.18);font-size:1rem;font-weight:700;position:absolute;bottom:30px;right:40px">Refract</div>
-            <div style="color:rgba(255,255,255,.12);font-size:2rem;font-weight:800;position:absolute;bottom:10px;left:30px">Web</div>
-          </div>
-          <div class="lens-glass-wrap" id="lens-glass-wrap">
-            <div class="lens-glass"></div>
-            <div class="lens-rim"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<div class="note">
-  <div class="note-bg"></div>
-  <div class="note-content">
-    <strong>How it works:</strong> Each component uses <code>backdrop-filter: blur(12px)</code> with <code>rgba(255, 255, 255, 0.2)</code> background on an absolutely-positioned glass layer. The content sits above it at <code>z-index: 1</code>. This is the exact technique used on <strong>Aave.com</strong> for their glass cards — no SVG filters needed.
   </div>
 </div>
 
-</div>
-
+<script src="glass-engine.js"></script>
 <script>
-'use strict';
+const GE = window.GlassEngine;
+
+/* spring-ish tween matching cubic-bezier(.34,1.56,.64,1) used by the CSS thumbs */
+function tween(from, to, dur, step, done) {
+  const t0 = performance.now();
+  const c1 = 1.70158, c3 = c1 + 1;          // easeOutBack — matches CSS .34,1.56,.64,1 feel
+  function frame(t) {
+    const k = Math.min((t - t0) / dur, 1);
+    const u = k - 1;
+    const e = 1 + c3 * u * u * u + c1 * u * u;
+    step({
+      x: from.x + (to.x - from.x) * e,
+      y: from.y + (to.y - from.y) * e,
+      w: from.w + (to.w - from.w) * k,
+      h: from.h + (to.h - from.h) * k,
+      r: from.r
+    });
+    if (k < 1) requestAnimationFrame(frame); else done && done();
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ── HERO: one lens over each chip ── */
+const hero = document.getElementById('hero');
+function heroLenses() {
+  const hr = hero.getBoundingClientRect();
+  [...hero.querySelectorAll('.hero-chip')].forEach(chip => {
+    const cr = chip.getBoundingClientRect();
+    GE.createGlass(hero, {
+      lens: {
+        x: cr.left - hr.left - 6, y: cr.top - hr.top - 6,
+        w: cr.width + 12, h: cr.height + 12, r: 999
+      },
+      scale: 0.06, depth: 120, rimStart: 0.4, rimPow: 2.1, glowSide: 28, glowTop: 22
+    });
+  });
+}
+addEventListener('load', () => requestAnimationFrame(() => requestAnimationFrame(heroLenses)));
 
 /* ── SWITCH ── */
 (function(){
-  const root = document.getElementById('sw-root');
-  const glass = document.getElementById('sw-glass');
-  let on = false;
-  function toggle() {
-    on = !on; root.classList.toggle('on', on);
-    root.setAttribute('aria-checked', String(on));
+  const root = document.getElementById('sw');
+  root.innerHTML =
+    '<div class="sw-fill"></div>' +
+    '<div class="sw-thumb"></div>';
+  let on = false, g;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      g = GE.createGlass(root, {
+        lens: { x: 8, y: 8, w: 36, h: 36, r: 18 },
+        scale: 0.14, depth: 127, rimStart: 0.76, rimPow: 2.3, glowSide: 54, glowTop: 21
+      });
+    });
+  });
+  function toggle(){
+    on = !on;
+    root.classList.toggle('on', on);
+    root.setAttribute('aria-checked', on);
+    if (!g) return;
+    const from = g.__pos || { x: on ? 8 : 76, y: 8, w: 36, h: 36, r: 18 };
+    const to = { x: on ? 76 : 8, y: 8, w: 36, h: 36, r: 18 };
+    tween(from, to, 380, p => { g.setLens(p); g.__pos = p; });
   }
   root.addEventListener('click', toggle);
-  root.addEventListener('keydown', function(e) {
+  root.addEventListener('keydown', e => {
     if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
   });
 })();
 
 /* ── SLIDER ── */
 (function(){
-  const root = document.getElementById('sl-root');
-  const thumb = document.getElementById('sl-thumb');
-  const fill = document.getElementById('sl-fill');
-  const glass = document.getElementById('sl-glass');
-  const label = document.getElementById('sl-label');
-  const TL = 10, TW = 220, HW = 30, TRAV = TW - HW;
-  let progress = 0.5, dragging = false;
+  const root = document.getElementById('sl');
+  const handle = document.getElementById('slHandle');
+  const fill = document.getElementById('slFill');
+  const val = document.getElementById('slVal');
+  const PAD = 14, HW = 30, TRAV = 260 - PAD*2 - HW;
+  let p = .5, dragging = false, g;
 
-  function setProgress(p) {
-    progress = Math.max(0, Math.min(1, p));
-    const hx = TL + progress * TRAV;
-    const pct = (progress * 100) + '%';
-    fill.style.width = pct;
-    thumb.style.left = hx + 'px';
-    glass.style.left = hx + 'px';
-    label.textContent = Math.round(progress * 100) + '%';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    g = GE.createGlass(root, {
+      lens: { x: PAD + p*TRAV, y: 11, w: 30, h: 30, r: 15 },
+      scale: 0.055, depth: 127, rimStart: 0.68, rimPow: 2.2, glowSide: 44, glowTop: 18
+    });
+    render();
+  }));
+
+  function render(){
+    const x = PAD + p * TRAV;
+    handle.style.left = x + 'px';
+    fill.style.width = 'calc(' + (p * 100) + '% - ' + (HW/2) + 'px)';
+    val.textContent = Math.round(p * 100) + '%';
+    if (g) g.setLens({ x, y: 11, w: 30, h: 30, r: 15 });
   }
-  function getP(cx) {
-    const rect = root.getBoundingClientRect();
-    return (cx - rect.left - TL) / TRAV;
-  }
-  thumb.addEventListener('mousedown', function() { dragging = true; });
-  window.addEventListener('mousemove', function(e) { if (dragging) setProgress(getP(e.clientX)); });
-  window.addEventListener('mouseup', function() { dragging = false; });
-  thumb.addEventListener('touchstart', function(e) { dragging = true; e.preventDefault(); }, { passive: false });
-  window.addEventListener('touchmove', function(e) { if (dragging) setProgress(getP(e.touches[0].clientX)); });
-  window.addEventListener('touchend', function() { dragging = false; });
-  setProgress(0.5);
+  const setFrom = cx => {
+    const r = root.getBoundingClientRect();
+    p = Math.max(0, Math.min(1, (cx - r.left - PAD - HW/2) / TRAV));
+    render();
+  };
+  root.addEventListener('mousedown', e => { dragging = true; setFrom(e.clientX); });
+  root.addEventListener('touchstart', e => { dragging = true; setFrom(e.touches[0].clientX); }, {passive:true});
+  addEventListener('mousemove', e => dragging && setFrom(e.clientX));
+  addEventListener('touchmove', e => dragging && setFrom(e.touches[0].clientX));
+  addEventListener('mouseup', () => dragging = false);
+  addEventListener('touchend', () => dragging = false);
 })();
 
-/* ── SEGMENTED ── */
+/* ── TOGGLE GROUP ── */
 (function(){
-  const root = document.getElementById('seg-root');
-  const glass = document.getElementById('seg-glass');
-  const items = root.querySelectorAll('.seg-item');
-  let activeIdx = 0;
+  const root = document.getElementById('tg');
+  const items = [...root.querySelectorAll('.tg-item')];
+  let active = 0, g;
 
-  function move(idx, anim) {
-    const el = items[idx];
-    const pr = root.getBoundingClientRect();
-    const er = el.getBoundingClientRect();
-    const pw = er.width, ph = er.height, pl = er.left - pr.left;
-    const trans = anim ? 'transform .4s cubic-bezier(.34,1.56,.64,1), width .4s' : 'none';
-    glass.style.transition = trans;
-    glass.style.width = pw + 'px';
-    glass.style.height = ph + 'px';
-    glass.style.transform = 'translateX(' + pl + 'px)';
+  function place(idx){
+    const rr = root.getBoundingClientRect();
+    const ir = items[idx].getBoundingClientRect();
+    return { x: ir.left - rr.left, y: 4, w: ir.width, h: ir.height, r: 10 };
   }
-
-  items.forEach(function(item, idx) {
-    item.addEventListener('click', function() {
-      items.forEach(function(i) { i.classList.remove('active'); });
-      item.classList.add('active');
-      activeIdx = idx;
-      move(idx, true);
-    });
-  });
-  requestAnimationFrame(function() { requestAnimationFrame(function() { move(0, false); }); });
-  window.addEventListener('resize', function() { move(activeIdx, false); });
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const l = place(0);
+    const hl = document.getElementById('tgHl');
+    hl.style.left = l.x + 'px'; hl.style.width = l.w + 'px';
+    g = GE.createGlass(root, { lens: l, scale: 0.0459, depth: 120, rimStart: 0.72, rimPow: 2.2, glowSide: 36, glowTop: 16 });
+  }));
+  items.forEach((it, i) => it.addEventListener('click', () => {
+    items.forEach(x => x.classList.remove('active'));
+    it.classList.add('active');
+    active = i;
+    const l = place(i);
+    const hl = document.getElementById('tgHl');
+    hl.style.transition = 'left .4s cubic-bezier(.34,1.56,.64,1), width .4s cubic-bezier(.34,1.56,.64,1)';
+    hl.style.left = l.x + 'px'; hl.style.width = l.w + 'px';
+    if (!g) return;
+    const from = g.__pos || l;
+    tween(from, l, 420, p => { g.setLens(p); g.__pos = p; });
+  }));
 })();
 
 /* ── CURSOR LENS ── */
 (function(){
-  const stage = document.getElementById('lens-stage');
-  const wrap = document.getElementById('lens-glass-wrap');
-
-  stage.addEventListener('mouseenter', function() { wrap.classList.add('visible'); });
-  stage.addEventListener('mouseleave', function() { wrap.classList.remove('visible'); });
-  stage.addEventListener('mousemove', function(e) {
-    const rect = stage.getBoundingClientRect();
-    wrap.style.left = (e.clientX - rect.left) + 'px';
-    wrap.style.top = (e.clientY - rect.top) + 'px';
+  const stage = document.getElementById('stage');
+  let g, started = false;
+  stage.addEventListener('mouseenter', () => {
+    if (!started) {
+      started = true;
+      g = GE.createGlass(stage, {
+        lens: { x: 40, y: 40, w: 160, h: 160, r: 80 },
+        scale: 0.0756, depth: 127, rimStart: 0.35, rimPow: 2.1, glowSide: 30, glowTop: 24
+      });
+    }
+  });
+  stage.addEventListener('mousemove', e => {
+    if (!g) return;
+    const r = stage.getBoundingClientRect();
+    const mx = e.clientX - r.left, my = e.clientY - r.top;
+    g.setLens({ x: mx - 80, y: my - 80, w: 160, h: 160, r: 80 });
   });
 })();
 </script>

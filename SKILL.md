@@ -1,183 +1,132 @@
 ---
 name: building-glass-for-web
-description: Glassmorphic UI components using CSS backdrop-filter blur() and semi-transparent white backgrounds — matching Aave.com's visual style. Use when building glass cards, switches, sliders, segmented controls, or any frosted glass UI. Triggers on "glass effect", "glassmorphism", "frosted glass", "Aave glass", "backdrop-filter glass".
+description: >-
+  Liquid-glass UI components using Aave's cross-browser SVG feDisplacementMap
+  technique — a generated displacement-map PNG drives an SVG filter that bends
+  the content's own pixels inside a lens-shaped region. Works in Chrome, Safari,
+  and Firefox with no flags or fallbacks. Use when building refractive glass
+  switches, sliders, segmented controls, cursor lenses, hero chips, or any
+  "liquid glass" / "Aave Glass" UI. Triggers: "liquid glass", "glass effect",
+  "refraction", "Aave glass", "feDisplacementMap", "glassmorphic component".
 ---
 
-# Building Glass for the Web
+# Building Glass for the Web (Aave technique)
 
-## Core Concept
+Faithful port of <https://aave.com/design/building-glass-for-the-web>,
+reverse-engineered from their live production DOM.
 
-Glass UI is a semi-transparent layer with `backdrop-filter: blur()` that sits between the background and the content. The blur distorts whatever is visually behind the element, creating a frosted-glass appearance.
+## Core idea (memorize this)
 
-This is the exact technique used on **Aave.com** for their partner cards.
+> The filter does NOT sample what's behind the glass. It bends **the content's own
+> pixels** inside a lens-shaped region. Content renders normally everywhere else.
+> That is why it works in every browser and text under glass stays selectable.
 
-### Why this works everywhere
+`backdrop-filter: url(#svg)` is Chromium-only (WebKit bug #245510) — do not use it
+as the primary path. `filter: url(#id)` on real content works everywhere.
 
-| Approach | Chromium | Safari | Firefox |
+## The three pieces
+
+### 1. Displacement map PNG (generated per lens shape)
+
+`GlassEngine.generateLensMap({w,h,radius,depth,rimStart,rimPow,glowSide,glowTop})`
+
+- 8-bit RGB canvas → dataURL. Channels:
+  - **R** = horizontal bend, **G** = vertical bend (128 = neutral)
+  - **B** = specular glow ramp (white added via alpha = B − 128/255)
+- Profile fitted to Aave's real maps: **flat-neutral center, steep outer rim**
+  - switch map fit: neutral until ~76% of radius, then sharp rise (`rimStart:.76, rimPow:2.3`)
+  - big hero lenses use a wider band (`rimStart:.35`)
+- Regenerate ONLY when shape changes; cache by size+params (engine does this).
+  Moving the lens only shifts the filter region — cheap.
+
+### 2. The SVG filter (exact 17-primitive chain, verbatim from Aave's DOM)
+
+`GlassEngine.buildGlassFilter(defs, {lens:{x,y,w,h fractions},mapHref,scale,...})`
+
+```
+<filter filterUnits="objectBoundingBox" primitiveUnits="objectBoundingBox"
+        color-interpolation-filters="sRGB" x=0 y=0 width=1 height=1>
+  feFlood rgb(128,128,128)                    -> mapBg
+  feImage map.png @lens-fractions preserveAspectRatio="none" -> rawMap
+  feComposite rawMap over mapBg               -> map
+  feGaussianBlur SourceGraphic stdDeviation≈blurPx/elW blurPx/elH -> blurred
+  feDisplacementMap blurred×map scale·1.08 -> feColorMatrix keep-R -> dispR
+  feDisplacementMap blurred×map scale·1.04 -> feColorMatrix keep-G -> dispG
+  feDisplacementMap blurred×map scale·1.00 -> feColorMatrix keep-B -> dispB
+  feComposite dispR+dispG arithmetic(k2=1,k3=1)
+  feComposite   +dispB arithmetic             -> lensResult
+  feColorMatrix map→white alpha=B−0.50196     -> specMask
+  feComposite specMask+lensResult arithmetic  -> lensResult
+  feFlood black @lens region                  -> lensMask
+  feComposite SourceGraphic out lensMask      -> holedSG   ← hole punch!
+  feComposite lensResult over holedSG         -> OUTPUT
+</filter>
+```
+
+Critical details:
+- **objectBoundingBox units everywhere** — lens coords are FRACTIONS of the element box.
+  In engines, displacement scale effectively scales with element size: a `scale`
+  tuned for a 116px-wide switch is far too strong for a 76px one. Start from the
+  production table below, then tune visually.
+- Chroma spread is SUBTLE: ±4–8% around base scale (R>G>B). Big spreads look fake.
+- The hole-punch composites are what make non-lens content stay pixel-identical.
+- **Fresh ID on every rebuild** (`…-v42-timestamp`). Safari caches filter output by
+  ID; reusing IDs freezes animation.
+
+### 3. Component wiring
+
+`const g = GlassEngine.createGlass(container, {lens:{x,y,w,h,r}, scale, ...})`
+
+- Applies the filter straight onto the container (layout untouched), injects a
+  zero-size `<svg><defs>` sibling.
+- Returns `{setLens(pxRect), id, refresh(), destroy()}`.
+- For animated moves (switch/toggle), tween `setLens` in rAF (~400ms easeOutBack);
+  maps are cached so each frame only rebuilds the filter node.
+- Lens must sit fully INSIDE colored content — displaced pixels sample the source;
+  pulls that exit the element render as transparency (dark halos).
+
+## Production parameter table (extracted from Aave)
+
+| Component | Element box | scale | map profile |
 |---|---|---|---|
-| `backdrop-filter: blur()` | ✓ | ✓ | ✓ |
-| `-webkit-backdrop-filter: blur()` | ✓ | ✓ | ✓ |
+| Switch | 116×70 | **0.3** | tight rim (.76/2.3) |
+| Slider | 290×72 | **0.113** | gentle bend |
+| Toggle group | 585×206 | **0.0459** | gentle bend |
+| Hero lens | 764×368 | **0.0756** | wide rim (.35/2.1) |
 
-`backdrop-filter` is supported in all three engines since 2020.
+Chroma multipliers: `[1.08, 1.04, 1.0]`. Specular glow biased to side rims
+(`glowSide > glowTop`) mimics their "Specular Angle".
 
----
+## Recipes
 
-## Architecture
+```js
+// Switch — thumb IS the lens; tween on toggle
+const g = GlassEngine.createGlass(track, {
+  lens: {x:8,y:8,w:36,h:36,r:18},
+  scale: .14, depth:127, rimStart:.76, rimPow:2.3, glowSide:54, glowTop:21
+});
+onToggle(() => tweenLens(g, {x:76,y:8,w:36,h:36,r:18}));
 
-### DOM Structure
-
-```
-Glass container (position: relative; border-radius)
-  ├─ Glass layer (position: absolute; inset: 0)     ← backdrop-filter: blur() + bg
-  └─ Content (position: relative; z-index: 1)        ← renders on top
-```
-
-```
-<div class="card" style="position:relative; border-radius:24px">
-  <!-- Glass backdrop layer -->
-  <div class="glass"
-       style="position:absolute; inset:0; border-radius:24px;
-              background: rgba(255,255,255,0.2);
-              backdrop-filter: blur(12px);
-              pointer-events: none">
-  </div>
-
-  <!-- Content on top -->
-  <div class="content" style="position:relative; z-index:1">
-    Card content here...
-  </div>
-</div>
+// Cursor magnifier — setLens every mousemove
+stage.onmousemove = e => {
+  const r = stage.getBoundingClientRect();
+  g.setLens({x:e.clientX-r.left-80, y:e.clientY-r.top-80, w:160,h:160,r:80});
+};
 ```
 
-### Key points
-
-- **Glass layer is absolute** — fills the container without affecting layout
-- **`pointer-events: none`** — clicks pass through to content
-- **Content gets `z-index: 1`** — renders above the glass layer
-- **Container needs `position: relative`** — anchor for the absolute glass layer
-- **`border-radius` on glass matches container** — corners stay sharp
-
----
-
-## CSS
-
-```css
-/* Glass card */
-.glass-card {
-  position: relative;
-  border-radius: 24px;
-}
-
-.glass-backdrop {
-  position: absolute;
-  inset: 0;
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.2);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  pointer-events: none;
-}
-
-.glass-content {
-  position: relative;
-  z-index: 1;
-}
-```
-
-Aave.com values:
-- Background: `rgba(255, 255, 255, 0.2)`
-- Blur: `12px`
-- Border-radius: `24px`
-- No border (or subtle `rgba(255,255,255,0.08)`)
-
----
-
-## Component Patterns
-
-### Glass Card
-
-```
-<div class="card" style="position:relative; border-radius:24px">
-  <div class="glass-backdrop"></div>
-  <div class="glass-content" style="position:relative; z-index:1">
-    <h3>Title</h3>
-    <p>Description...</p>
-  </div>
-</div>
-```
-
-### Glass Button
-
-```css
-.glass-btn {
-  position: relative;
-  padding: 10px 24px;
-  border-radius: 14px;
-  border: none;
-  cursor: pointer;
-  background: transparent;
-  overflow: hidden;
-}
-.glass-btn-backdrop {
-  position: absolute; inset: 0; border-radius: 14px;
-  background: rgba(255,255,255,0.2);
-  backdrop-filter: blur(12px);
-  pointer-events: none;
-}
-.glass-btn:hover .glass-btn-backdrop {
-  background: rgba(255,255,255,0.25);
-}
-.glass-btn span { position: relative; z-index: 1; }
-```
-
-### Glass Thumb / Handle
-
-For switches and sliders, the glass layer sits on top of the thumb element while a solid white thumb sits beneath (with z-index) to maintain the frosted look.
-
-```
-Switch thumb:
-  ├─ Solid thumb (z-index: 1)        ← white circle
-  └─ Glass thumb (onToggle moves)    ← backdrop-filter: blur()
-```
-
-### Cursor Lens
-
-A circular glass layer follows the cursor, offset by `-50%, -50%` to center on the pointer. A rim overlay adds a subtle border and shadow for depth.
-
----
-
-## Browser Quirks & Fixes
-
-### 1. `-webkit-backdrop-filter` prefix
-
-**Fix**: Always include both prefixed and unprefixed:
-```css
--webkit-backdrop-filter: blur(12px);
-backdrop-filter: blur(12px);
-```
-
-### 2. Safari border-radius clipping
-
-**Fix**: Match the glass layer's `border-radius` to the container exactly.
-
-### 3. Chromium paint order
-
-**Fix**: Ensure the glass layer is the first child of the container so it paints behind the content.
-
----
-
-## Performance
-
-- **`backdrop-filter: blur()`** is GPU-accelerated in all engines
-- Transforms and opacity changes on glass layers are composited
-- Avoid animating `backdrop-filter` itself (causes repaint) — animate `transform` or `opacity` instead
-
-## Troubleshooting
+## Debug checklist
 
 | Symptom | Cause | Fix |
 |---|---|---|
-| Glass appears as solid white | Missing `backdrop-filter` | Add `backdrop-filter: blur()` |
-| Glass has no blur effect | Element has no content behind it | Ensure background has visible elements |
-| Content not visible | Content behind glass layer | Add `z-index: 1` to content |
-| Glass has square corners | `border-radius` not synced | Match border-radius on container and glass |
-| Glass disappears on scroll | iOS Safari compositing | Add `will-change: transform` to glass layer |
+| Dark ring around thumb | pull exits colored content | bigger track / smaller scale |
+| Whole content smears | map bends everywhere | raise rimStart toward .7–.85 |
+| No visible effect | scale too small for box | scale ≈ desired_px_pull / box_width |
+| Animation freezes in Safari | reused filter ID | always fresh `-vN-timestamp` |
+| Harsh rainbow fringes | chroma too strong | keep within [1.08,1.04,1.0] |
+| Layout broke after init | you wrapped children | don't — filter goes ON container |
+
+## Files
+
+- `glass-engine.js` — drop-in `<script>` exposing `window.GlassEngine`
+  (`generateLensMap`, `buildGlassFilter`, `createGlass`)
+- `index.html` — working demos: switch, slider, toggle group, cursor lens, hero
