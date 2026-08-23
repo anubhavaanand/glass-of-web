@@ -1,0 +1,1196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aave Glass — Building Glass for the Web</title>
+<meta name="description" content="Cross-browser Liquid Glass effect for the web — feDisplacementMap SVG filter & WebGL shader.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f4fb;
+  --bg-card:#ffffff;
+  --fg-1:#13111a;
+  --fg-2:#423d53;
+  --fg-muted:#78728d;
+  --primary:#6c5ce7;
+  --primary-glow:rgba(108,92,231,0.35);
+  --accent:#ff7675;
+  --teal:#00cec9;
+  --border:rgba(108,92,231,0.12);
+  --border-card:rgba(255,255,255,0.85);
+  --shadow-sm:0 2px 8px rgba(32,24,68,0.06);
+  --shadow-md:0 12px 32px -8px rgba(32,24,68,0.12);
+  --shadow-lg:0 24px 48px -12px rgba(32,24,68,0.18);
+  --font:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
+
+body{
+  font-family:var(--font);
+  color:var(--fg-1);
+  background:
+    radial-gradient(1000px circle at 10% -5%, #e8e3ff 0%, transparent 60%),
+    radial-gradient(900px circle at 95% 15%, #ffe6f3 0%, transparent 50%),
+    radial-gradient(1100px circle at 50% 105%, #e1faf7 0%, transparent 60%),
+    var(--bg);
+  min-height:100vh;
+  line-height:1.5;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+.page{
+  max-width:960px;
+  margin:0 auto;
+  padding:4rem 1.5rem 8rem;
+}
+
+/* ── HEADER ── */
+header{
+  margin-bottom:3.2rem;
+}
+.badge{
+  display:inline-flex;
+  align-items:center;
+  gap:.5rem;
+  font-size:.72rem;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--primary);
+  background:rgba(108,92,231,.08);
+  border:1px solid rgba(108,92,231,.2);
+  padding:.35rem .85rem;
+  border-radius:999px;
+  margin-bottom:1.2rem;
+}
+.badge-dot{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--primary);
+  box-shadow:0 0 8px var(--primary);
+}
+h1{
+  font-size:clamp(2.3rem, 5.5vw, 3.4rem);
+  font-weight:800;
+  letter-spacing:-.035em;
+  line-height:1.08;
+  margin-bottom:.9rem;
+  color:#110e1b;
+}
+.sub{
+  color:var(--fg-2);
+  font-size:1.05rem;
+  line-height:1.65;
+  max-width:680px;
+}
+
+/* ── SECTIONS ── */
+section{
+  margin-top:3.2rem;
+}
+.sec-head{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  margin-bottom:1.1rem;
+}
+h2{
+  font-size:1.18rem;
+  font-weight:800;
+  letter-spacing:-.02em;
+}
+.hint{
+  font-size:.78rem;
+  color:var(--fg-muted);
+  font-weight:500;
+}
+
+/* ── HERO STAGE ── */
+.hero-stage{
+  position:relative;
+  height:380px;
+  border-radius:32px;
+  overflow:hidden;
+  box-shadow:var(--shadow-lg), 0 0 0 1px rgba(255,255,255,.9) inset;
+  background:#141226;
+  cursor:crosshair;
+  user-select:none;
+}
+.hero-bg{
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle 280px at 15% 25%, #ff7675 0%, transparent 70%),
+    radial-gradient(circle 320px at 85% 20%, #74b9ff 0%, transparent 70%),
+    radial-gradient(circle 290px at 65% 85%, #fd79a8 0%, transparent 70%),
+    radial-gradient(circle 260px at 30% 90%, #00cec9 0%, transparent 70%),
+    radial-gradient(circle 200px at 50% 50%, #a29bfe 0%, transparent 60%),
+    linear-gradient(135deg, #2d2454, #100e1f);
+}
+.hero-mesh{
+  position:absolute;
+  inset:0;
+  background-image:
+    radial-gradient(rgba(255,255,255,0.2) 1.2px, transparent 1.2px),
+    radial-gradient(rgba(255,255,255,0.1) 1.2px, transparent 1.2px);
+  background-size:32px 32px;
+  background-position:0 0, 16px 16px;
+  opacity:0.75;
+}
+.hero-chip{
+  position:absolute;
+  display:flex;
+  align-items:center;
+  gap:.6rem;
+  padding:.7rem 1.2rem;
+  border-radius:999px;
+  background:rgba(20,18,38,.65);
+  backdrop-filter:blur(8px);
+  color:#fff;
+  font-size:.9rem;
+  font-weight:700;
+  border:1px solid rgba(255,255,255,.18);
+  box-shadow:0 10px 24px rgba(0,0,0,.35);
+  pointer-events:none;
+}
+.chip-gem{
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  background:linear-gradient(135deg, #ffd32a, #ff3838);
+  box-shadow:0 0 10px rgba(255,100,50,.7);
+}
+.hero-typography{
+  position:absolute;
+  color:#ffffff;
+  font-weight:800;
+  letter-spacing:-.03em;
+  pointer-events:none;
+  text-shadow:0 2px 20px rgba(0,0,0,.3);
+}
+
+/* ── GRID OF COMPONENTS ── */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(290px, 1fr));
+  gap:1.4rem;
+}
+.card{
+  background:linear-gradient(145deg, rgba(255,255,255,.88), rgba(255,255,255,.62));
+  border:1px solid var(--border-card);
+  border-radius:28px;
+  box-shadow:var(--shadow-md), 0 1px 0 #fff inset;
+  padding:1.6rem 1.5rem;
+  display:flex;
+  flex-direction:column;
+  gap:1.2rem;
+  position:relative;
+  overflow:hidden;
+}
+.card h3{
+  font-size:1rem;
+  font-weight:800;
+  letter-spacing:-.01em;
+}
+.card p{
+  font-size:.82rem;
+  color:var(--fg-2);
+  line-height:1.55;
+}
+.stage-wrap{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  min-height:140px;
+  border-radius:20px;
+  overflow:hidden;
+}
+.vivid-bg{
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle 140px at 20% 30%, rgba(255,118,117,.95), transparent 70%),
+    radial-gradient(circle 160px at 80% 25%, rgba(116,185,255,.95), transparent 70%),
+    radial-gradient(circle 150px at 65% 85%, rgba(253,121,168,.95), transparent 70%),
+    radial-gradient(circle 130px at 15% 80%, rgba(0,206,201,.95), transparent 70%),
+    linear-gradient(135deg, #302652, #141126);
+}
+.vivid-grid{
+  position:absolute;
+  inset:0;
+  background-image:radial-gradient(rgba(255,255,255,0.25) 1px, transparent 1px);
+  background-size:20px 20px;
+}
+
+/* ── SWITCH COMPONENT ── */
+.sw{
+  position:relative;
+  width:136px;
+  height:64px;
+  border-radius:32px;
+  background:rgba(255,255,255,.28);
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.7), 0 8px 24px rgba(0,0,0,.15);
+  cursor:pointer;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  z-index:2;
+}
+.sw-refract{
+  position:absolute;
+  inset:0;
+  border-radius:32px;
+  background:linear-gradient(90deg, #6c5ce7, #a29bfe);
+  transform:scaleX(0.85) scaleY(0.525);
+  opacity:0.3;
+  transition:opacity .35s, background .35s;
+}
+.sw.on .sw-refract{
+  opacity:1;
+  background:linear-gradient(90deg, #00cec9, #6c5ce7);
+}
+.sw-overlay{
+  position:absolute;
+  inset:0;
+  border-radius:32px;
+  background:white;
+  opacity:0.14;
+  pointer-events:none;
+}
+.sw-thumb{
+  position:absolute;
+  top:8px;
+  left:8px;
+  width:48px;
+  height:48px;
+  border-radius:24px;
+  background:linear-gradient(180deg, #ffffff 0%, #eef0ff 100%);
+  box-shadow:0 3px 8px rgba(0,0,0,.22), inset 0 1px 2px #fff;
+  transition:transform .44s cubic-bezier(.34,1.56,.64,1);
+}
+.sw.on .sw-thumb{
+  transform:translateX(72px);
+}
+
+/* ── SLIDER COMPONENT ── */
+.sl{
+  position:relative;
+  width:min(320px, 100%);
+  height:60px;
+  cursor:pointer;
+  touch-action:none;
+  z-index:2;
+}
+.sl-track{
+  position:absolute;
+  left:8px;
+  right:8px;
+  top:50%;
+  height:42px;
+  transform:translateY(-50%);
+  border-radius:21px;
+  background:rgba(255,255,255,.32);
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.65), 0 6px 20px rgba(0,0,0,.12);
+  overflow:hidden;
+}
+.sl-fill{
+  position:absolute;
+  top:5px;
+  bottom:5px;
+  left:0;
+  border-radius:16px;
+  background:linear-gradient(90deg, #6c5ce7, #00cec9);
+}
+.sl-refract{
+  position:absolute;
+  left:8px;
+  right:8px;
+  top:50%;
+  height:42px;
+  transform:translateY(-50%) scaleX(0.85) scaleY(0.525);
+  border-radius:21px;
+  overflow:hidden;
+  pointer-events:none;
+}
+.sl-refract-inner{
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg, #6c5ce7, #00cec9);
+}
+.sl-overlay{
+  position:absolute;
+  left:8px;
+  right:8px;
+  top:50%;
+  height:42px;
+  transform:translateY(-50%);
+  border-radius:21px;
+  background:white;
+  opacity:0.12;
+  pointer-events:none;
+}
+.sl-handle{
+  position:absolute;
+  top:50%;
+  width:36px;
+  height:36px;
+  border-radius:18px;
+  margin-top:-18px;
+  background:linear-gradient(180deg, #ffffff, #eef0ff);
+  box-shadow:0 3px 10px rgba(0,0,0,.26), inset 0 1px 2px #fff;
+  pointer-events:none;
+}
+.sl-val{
+  position:absolute;
+  right:16px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:.82rem;
+  font-weight:800;
+  color:#fff;
+  text-shadow:0 1px 4px rgba(0,0,0,.4);
+  pointer-events:none;
+  z-index:1;
+}
+
+/* ── TOGGLE GROUP ── */
+.tg{
+  position:relative;
+  display:flex;
+  width:100%;
+  max-width:440px;
+  background:rgba(255,255,255,.32);
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.65), 0 8px 24px rgba(0,0,0,.12);
+  border-radius:24px;
+  padding:8px;
+  z-index:2;
+}
+.tg-item{
+  flex:1;
+  text-align:center;
+  padding:.85rem .4rem;
+  font-size:.86rem;
+  font-weight:700;
+  color:rgba(255,255,255,.75);
+  cursor:pointer;
+  user-select:none;
+  transition:color .25s;
+  position:relative;
+  z-index:3;
+}
+.tg-item.active{
+  color:#fff;
+}
+.tg-hl{
+  position:absolute;
+  top:8px;
+  left:8px;
+  height:calc(100% - 16px);
+  border-radius:18px;
+  background:linear-gradient(135deg, #6c5ce7, #a29bfe);
+  box-shadow:0 4px 14px rgba(108,92,231,.4);
+  z-index:1;
+}
+.tg-refract{
+  position:absolute;
+  inset:0;
+  border-radius:24px;
+  overflow:hidden;
+  pointer-events:none;
+  transform:scaleX(0.85) scaleY(0.525);
+}
+.tg-refract-pill{
+  position:absolute;
+  top:8px;
+  height:calc(100% - 16px);
+  border-radius:18px;
+  background:linear-gradient(135deg, #00cec9, #6c5ce7);
+}
+.tg-overlay{
+  position:absolute;
+  inset:0;
+  border-radius:24px;
+  background:white;
+  opacity:0.08;
+  pointer-events:none;
+}
+
+/* ── CURSOR LENS STAGE ── */
+.lens-stage{
+  position:relative;
+  width:100%;
+  aspect-ratio:16/9.5;
+  border-radius:24px;
+  overflow:hidden;
+  cursor:none;
+  box-shadow:var(--shadow-md);
+  background:#141226;
+}
+
+/* ── QR CODE CARD (WebGL) ── */
+.qr-container{
+  position:relative;
+  width:200px;
+  height:200px;
+  border-radius:24px;
+  overflow:hidden;
+  cursor:pointer;
+  box-shadow:0 12px 30px rgba(0,0,0,.25), 0 0 0 1px rgba(255,255,255,.5) inset;
+  z-index:2;
+}
+.qr-container canvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+.qr-badge-click{
+  position:absolute;
+  bottom:10px;
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(0,0,0,.7);
+  color:#fff;
+  font-size:.65rem;
+  font-weight:700;
+  padding:.3rem .7rem;
+  border-radius:999px;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  z-index:4;
+  pointer-events:none;
+}
+
+/* ── VIDEO / CANVAS DYNAMIC SCENE (WebGL) ── */
+.dyn-canvas-container{
+  position:relative;
+  width:100%;
+  aspect-ratio:16/9;
+  border-radius:24px;
+  overflow:hidden;
+  cursor:crosshair;
+  box-shadow:var(--shadow-md);
+}
+.dyn-canvas-container canvas{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+
+/* ── PLAYGROUND ── */
+.playground{
+  border-radius:32px;
+  background:linear-gradient(145deg, rgba(255,255,255,.92), rgba(255,255,255,.7));
+  box-shadow:var(--shadow-lg), 0 1px 0 #fff inset;
+  padding:2rem;
+}
+.pg-grid{
+  display:grid;
+  grid-template-columns:1.25fr 1fr;
+  gap:1.5rem;
+  align-items:start;
+}
+@media(max-width:760px){.pg-grid{grid-template-columns:1fr}}
+.pg-result{
+  position:relative;
+  border-radius:24px;
+  overflow:hidden;
+  aspect-ratio:2/1;
+  background:
+    radial-gradient(circle 160px at 20% 30%, #ff7675 0%, transparent 70%),
+    radial-gradient(circle 180px at 80% 25%, #74b9ff 0%, transparent 70%),
+    radial-gradient(circle 170px at 60% 85%, #fd79a8 0%, transparent 70%),
+    linear-gradient(135deg, #302652, #141126);
+  cursor:crosshair;
+  box-shadow:0 8px 24px rgba(0,0,0,.2);
+}
+.pg-mapwrap{
+  border-radius:24px;
+  overflow:hidden;
+  aspect-ratio:2/1;
+  background:#100e1f;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.1), 0 8px 24px rgba(0,0,0,.2);
+}
+.pg-mapwrap img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+.pg-labels{
+  display:flex;
+  justify-content:space-between;
+  font-size:.74rem;
+  color:var(--fg-muted);
+  margin-top:.5rem;
+  font-weight:700;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+}
+
+/* Playground Controls */
+.controls-panel{
+  margin-top:1.8rem;
+  padding-top:1.6rem;
+  border-top:1px solid rgba(108,92,231,.12);
+}
+.controls-section-title{
+  font-size:.78rem;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--primary);
+  margin-bottom:.9rem;
+}
+.controls-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(140px, 1fr));
+  gap:1rem 1.4rem;
+}
+.ctrl{
+  display:flex;
+  flex-direction:column;
+  gap:.35rem;
+}
+.ctrl label{
+  display:flex;
+  justify-content:space-between;
+  font-size:.74rem;
+  font-weight:700;
+  color:var(--fg-2);
+  letter-spacing:.04em;
+}
+.ctrl label b{
+  color:var(--primary);
+  font-family:var(--font-mono);
+  font-size:.76rem;
+}
+.ctrl input[type=range]{
+  width:100%;
+  accent-color:var(--primary);
+  height:20px;
+  cursor:pointer;
+}
+
+/* ── FOOTER ── */
+footer{
+  margin-top:4rem;
+  font-size:.82rem;
+  color:var(--fg-muted);
+  line-height:1.7;
+  border-top:1px solid rgba(108,92,231,.12);
+  padding-top:1.8rem;
+}
+footer code{
+  font-family:var(--font-mono);
+  background:rgba(108,92,231,.08);
+  color:var(--primary);
+  padding:2px 6px;
+  border-radius:6px;
+  font-size:.86em;
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="badge"><span class="badge-dot"></span> SVG feDisplacementMap · WebGL GLSL · 100% Cross-Browser</div>
+  <h1>Building Glass for the Web</h1>
+  <p class="sub">Direct live DOM refraction using 8-bit displacement maps and a 17-primitive SVG filter pipeline. Text stays selectable, motion holds 60fps on mobile, and WebGL powers canvas &amp; video textures.</p>
+</header>
+
+<!-- HERO SECTION -->
+<section>
+  <div class="hero-stage" id="heroStage">
+    <div class="hero-bg"></div>
+    <div class="hero-mesh"></div>
+    <div class="hero-chip" style="top:14%;left:8%"><span class="chip-gem"></span>Aave Glass</div>
+    <div class="hero-chip" style="bottom:14%;right:8%"><span class="chip-gem" style="background:linear-gradient(135deg, #00cec9, #74b9ff);box-shadow:0 0 10px rgba(0,206,201,.7)"></span>Liquid Glass</div>
+    <div class="hero-typography" style="top:36%;left:30%;font-size:3rem">refraction</div>
+    <div class="hero-typography" style="bottom:22%;left:12%;font-size:1.15rem;color:rgba(255,255,255,.7)">feDisplacementMap</div>
+    <div class="hero-typography" style="top:16%;right:24%;font-size:1.05rem;color:rgba(255,255,255,.65)">objectBoundingBox</div>
+  </div>
+  <p class="hint" style="margin-top:.6rem">✦ Drifts automatically — hover and move your pointer over the stage to drag the lens directly.</p>
+</section>
+
+<!-- COMPONENT FAMILY -->
+<section>
+  <div class="sec-head">
+    <h2>Component Family</h2>
+    <span class="hint">interactive · click and drag</span>
+  </div>
+  
+  <div class="grid">
+
+    <!-- SWITCH -->
+    <div class="card">
+      <h3>Switch</h3>
+      <p>The thumb acts as a moving lens, refracting a copy of the track fill into a luminous highlight.</p>
+      <div class="stage-wrap">
+        <div class="vivid-bg"></div>
+        <div class="vivid-grid"></div>
+        <div class="sw" id="sw" role="switch" aria-checked="false" tabindex="0">
+          <div class="sw-refract"></div>
+          <div class="sw-overlay"></div>
+          <div class="sw-thumb"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDER -->
+    <div class="card">
+      <h3>Slider</h3>
+      <p>Gentle bend keeping values readable through the glass while the handle shifts filter coordinates.</p>
+      <div class="stage-wrap">
+        <div class="vivid-bg"></div>
+        <div class="vivid-grid"></div>
+        <div class="sl" id="sl">
+          <div class="sl-track"><div class="sl-fill" id="slFill"></div></div>
+          <div class="sl-refract"><div class="sl-refract-inner" id="slRefract"></div></div>
+          <div class="sl-overlay"></div>
+          <div class="sl-handle" id="slHandle"></div>
+          <div class="sl-val" id="slVal">50%</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TOGGLE GROUP -->
+    <div class="card" style="grid-column:1/-1">
+      <h3>Toggle Group</h3>
+      <p>The glass indicator springs smoothly between options, refracting a highlighted pill layer.</p>
+      <div class="stage-wrap">
+        <div class="vivid-bg"></div>
+        <div class="vivid-grid"></div>
+        <div class="tg" id="tg">
+          <div class="tg-hl" id="tgHl"></div>
+          <div class="tg-refract"><div class="tg-refract-pill" id="tgRefractPill"></div></div>
+          <div class="tg-overlay"></div>
+          <div class="tg-item active">Daily</div>
+          <div class="tg-item">Weekly</div>
+          <div class="tg-item">Monthly</div>
+          <div class="tg-item">Yearly</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CURSOR LENS -->
+    <div class="card" style="grid-column:1/-1">
+      <h3>Interactive Cursor Lens</h3>
+      <p>Circular lens with visible chromatic aberration refracting live text &amp; background particles.</p>
+      <div class="lens-stage" id="lensStage">
+        <div class="hero-bg"></div>
+        <div class="hero-mesh"></div>
+        <div class="hero-typography" style="top:14%;left:8%;font-size:1.8rem">Nebula Cluster</div>
+        <div class="hero-typography" style="bottom:16%;right:10%;font-size:1.2rem">Deep Field 4K</div>
+        <div class="hero-typography" style="top:44%;left:45%;font-size:1.1rem;color:rgba(255,255,255,.6)">chroma: ±4%</div>
+      </div>
+    </div>
+
+    <!-- QR CODE WEBGL -->
+    <div class="card">
+      <h3>QR Code (WebGL)</h3>
+      <p>Canvas-drawn texture refracted via WebGL shader on click — bypassing live DOM limitations.</p>
+      <div class="stage-wrap">
+        <div class="vivid-bg"></div>
+        <div class="vivid-grid"></div>
+        <div class="qr-container" id="qrContainer">
+          <canvas id="qrSource" width="200" height="200"></canvas>
+          <canvas id="qrGlass" width="200" height="200" style="z-index:3"></canvas>
+          <div class="qr-badge-click">Click to refract</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DYNAMIC SCENE WEBGL -->
+    <div class="card">
+      <h3>Dynamic Canvas Scene (WebGL)</h3>
+      <p>Moving procedural particle field refracted in real-time under pointer position via GLSL.</p>
+      <div class="stage-wrap" style="padding:0">
+        <div class="dyn-canvas-container" id="dynContainer">
+          <canvas id="dynSource" width="400" height="225"></canvas>
+          <canvas id="dynGlass" width="400" height="225" style="z-index:2"></canvas>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- PLAYGROUND — 12 KNOBS -->
+<section>
+  <div class="sec-head">
+    <h2>The Map &amp; Refraction Playground</h2>
+    <span class="hint">12 production controls from Aave's article</span>
+  </div>
+  
+  <div class="playground">
+    <div class="pg-grid">
+      <div>
+        <div class="pg-result" id="pgResult">
+          <div class="hero-typography" style="top:18%;left:12%;font-size:1.7rem">liquid glass</div>
+          <div class="hero-typography" style="bottom:16%;right:12%;font-size:1.1rem;color:rgba(255,255,255,.7)">refracted DOM</div>
+        </div>
+        <div class="pg-labels"><span>Refracted Output</span><span>Live Element</span></div>
+      </div>
+      <div>
+        <div class="pg-mapwrap"><img id="pgMap" alt="displacement map"></div>
+        <div class="pg-labels"><span>Generated Map PNG</span><span>R=X · G=Y · B=Glow</span></div>
+      </div>
+    </div>
+
+    <div class="controls-panel">
+      <div class="controls-section-title">Geometry &amp; Shape</div>
+      <div class="controls-grid" style="margin-bottom:1.4rem">
+        <div class="ctrl"><label>Width <b id="vWidth">70</b></label><input id="cWidth" type="range" min="20" max="120" step="1" value="70"></div>
+        <div class="ctrl"><label>Height <b id="vHeight">60</b></label><input id="cHeight" type="range" min="20" max="80" step="1" value="60"></div>
+        <div class="ctrl"><label>BorderRadius <b id="vRadius">28</b></label><input id="cRadius" type="range" min="0" max="64" step="1" value="28"></div>
+        <div class="ctrl"><label>Scale <b id="vScale">13</b></label><input id="cScale" type="range" min="1" max="50" step="1" value="13"></div>
+      </div>
+
+      <div class="controls-section-title">Optics &amp; Refraction</div>
+      <div class="controls-grid" style="margin-bottom:1.4rem">
+        <div class="ctrl"><label>Depth <b id="vDepth">10</b></label><input id="cDepth" type="range" min="5" max="60" step="1" value="10"></div>
+        <div class="ctrl"><label>Curvature <b id="vCurv">40</b></label><input id="cCurv" type="range" min="0" max="80" step="1" value="40"></div>
+        <div class="ctrl"><label>Splay <b id="vSplay">1.00</b></label><input id="cSplay" type="range" min="0.1" max="1" step="0.02" value="1.00"></div>
+        <div class="ctrl"><label>Chroma <b id="vChroma">0.20</b></label><input id="cChroma" type="range" min="0" max="0.5" step="0.01" value="0.20"></div>
+      </div>
+
+      <div class="controls-section-title">Highlights &amp; Lighting</div>
+      <div class="controls-grid">
+        <div class="ctrl"><label>Blur <b id="vBlur">0.0</b></label><input id="cBlur" type="range" min="0" max="2" step="0.1" value="0.0"></div>
+        <div class="ctrl"><label>Glow <b id="vGlow">0.10</b></label><input id="cGlow" type="range" min="0" max="1" step="0.02" value="0.10"></div>
+        <div class="ctrl"><label>Edge Highlight <b id="vEdge">0.25</b></label><input id="cEdge" type="range" min="0" max="1" step="0.02" value="0.25"></div>
+        <div class="ctrl"><label>Specular Angle <b id="vAngle">45°</b></label><input id="cAngle" type="range" min="0" max="180" step="1" value="45"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Engine: <code>glass-engine.js</code> · 17-primitive SVG chain with SDF normals · userSpaceOnUse for cross-browser · WebGL GLSL fallback for non-DOM textures · Fresh filter IDs per update for Safari cache-busting.
+</footer>
+
+</div>
+
+<script src="glass-engine.js"></script>
+<script>
+const GE = window.GlassEngine;
+const { createGlass, generateMap, createGlassWebGL } = GE;
+
+/* Spring-like easeOutBack tween */
+function tween(from, to, dur, onStep, onDone) {
+  const t0 = performance.now();
+  const c1 = 1.70158, c3 = c1 + 1;
+  (function frame(t) {
+    const k = Math.min((t - t0) / dur, 1);
+    const u = k - 1;
+    const e = 1 + c3 * u * u * u + c1 * u * u;
+    onStep({
+      x: from.x + (to.x - from.x) * e,
+      y: from.y + (to.y - from.y) * e,
+      w: from.w + (to.w - from.w) * k,
+      h: from.h + (to.h - from.h) * k,
+      r: from.r
+    });
+    if (k < 1) requestAnimationFrame(frame);
+    else if (onDone) onDone();
+  })(t0);
+}
+
+/* ── 1. HERO SECTION ── */
+(function initHero() {
+  const stage = document.getElementById('heroStage');
+  
+  function setup() {
+    const driftLens = createGlass(stage, {
+      lens: { x: 0, y: 0, w: 200, h: 200, r: 100 },
+      scale: 15, depth: 127, curvature: 0.7, curvaturePow: 2.0, glowSide: 36, glowTop: 24
+    });
+
+    let t0 = performance.now();
+    let userHover = false;
+
+    stage.addEventListener('mouseenter', () => { userHover = true; });
+    stage.addEventListener('mouseleave', () => { userHover = false; });
+    stage.addEventListener('mousemove', e => {
+      const r = stage.getBoundingClientRect();
+      driftLens.setLens({ x: e.clientX - r.left - 100, y: e.clientY - r.top - 100, w: 200, h: 200, r: 100 });
+    });
+
+    (function driftLoop(t) {
+      if (!userHover) {
+        const sr = stage.getBoundingClientRect();
+        const k = (t - t0) / 1000;
+        const x = sr.width * 0.5 + Math.cos(k * 0.6) * (sr.width * 0.3) - 100;
+        const y = sr.height * 0.5 + Math.sin(k * 0.9) * (sr.height * 0.25) - 100;
+        driftLens.setLens({ x, y, w: 200, h: 200, r: 100 });
+      }
+      requestAnimationFrame(driftLoop);
+    })(t0);
+  }
+
+  setup();
+})();
+
+/* ── 2. SWITCH COMPONENT ── */
+(function initSwitch() {
+  const root = document.getElementById('sw');
+  let on = false, g;
+  
+  g = createGlass(root, {
+    lens: { x: 8, y: 8, w: 48, h: 48, r: 24 },
+    scale: 8, depth: 127, curvature: 0.8, curvaturePow: 2.3, glowSide: 54, glowTop: 21
+  });
+  g.__pos = { x: 8, y: 8, w: 48, h: 48, r: 24 };
+
+  root.addEventListener('click', () => {
+    on = !on;
+    root.classList.toggle('on', on);
+    root.setAttribute('aria-checked', on);
+    if (!g) return;
+    const target = { x: on ? 80 : 8, y: 8, w: 48, h: 48, r: 24 };
+    tween(g.__pos, target, 440, p => { g.setLens(p); g.__pos = p; });
+  });
+})();
+
+/* ── 3. SLIDER COMPONENT ── */
+(function initSlider() {
+  const root = document.getElementById('sl');
+  const handle = document.getElementById('slHandle');
+  const fill = document.getElementById('slFill');
+  const refract = document.getElementById('slRefract');
+  const val = document.getElementById('slVal');
+  const PAD = 16, HW = 36;
+  let TRAV = 320 - PAD * 2 - HW, p = 0.5, dragging = false, g;
+
+  function updateMetrics() {
+    TRAV = root.getBoundingClientRect().width - PAD * 2 - HW;
+  }
+
+  updateMetrics();
+  g = createGlass(root, {
+    lens: { x: PAD + p * TRAV, y: 12, w: HW, h: HW, r: HW / 2 },
+    scale: 4, depth: 120, curvature: 0.7, curvaturePow: 2.2, glowSide: 42, glowTop: 18
+  });
+  render();
+
+  function render() {
+    const x = PAD + p * TRAV;
+    handle.style.left = x + 'px';
+    fill.style.width = 'calc(' + (p * 100) + '% - ' + (HW / 2) + 'px)';
+    refract.style.width = 'calc(' + (p * 100) + '% - ' + (HW / 2) + 'px)';
+    val.textContent = Math.round(p * 100) + '%';
+    if (g) g.setLens({ x, y: 12, w: HW, h: HW, r: HW / 2 });
+  }
+
+  function setFromPointer(cx) {
+    const r = root.getBoundingClientRect();
+    p = Math.max(0, Math.min(1, (cx - r.left - PAD - HW / 2) / TRAV));
+    render();
+  }
+
+  root.addEventListener('mousedown', e => { dragging = true; setFromPointer(e.clientX); });
+  root.addEventListener('touchstart', e => { dragging = true; setFromPointer(e.touches[0].clientX); }, { passive: true });
+  window.addEventListener('mousemove', e => { if (dragging) setFromPointer(e.clientX); });
+  window.addEventListener('touchmove', e => { if (dragging) setFromPointer(e.touches[0].clientX); });
+  window.addEventListener('mouseup', () => { dragging = false; });
+  window.addEventListener('touchend', () => { dragging = false; });
+})();
+
+/* ── 4. TOGGLE GROUP ── */
+(function initToggleGroup() {
+  const root = document.getElementById('tg');
+  const items = [...root.querySelectorAll('.tg-item')];
+  const hl = document.getElementById('tgHl');
+  const refractPill = document.getElementById('tgRefractPill');
+  let g;
+
+  function getSlotRect(idx) {
+    const rr = root.getBoundingClientRect();
+    const ir = items[idx].getBoundingClientRect();
+    return { x: ir.left - rr.left, y: 8, w: ir.width, h: ir.height, r: 18 };
+  }
+
+  const initRect = getSlotRect(0);
+  hl.style.left = initRect.x + 'px';
+  hl.style.width = initRect.w + 'px';
+  refractPill.style.left = initRect.x + 'px';
+  refractPill.style.width = initRect.w + 'px';
+  g = createGlass(root, { lens: initRect, scale: 5, depth: 110, curvature: 0.8, curvaturePow: 2.3, glowSide: 32, glowTop: 16 });
+  g.__pos = initRect;
+
+  items.forEach((item, idx) => {
+    item.addEventListener('click', () => {
+      items.forEach(it => it.classList.remove('active'));
+      item.classList.add('active');
+      const targetRect = getSlotRect(idx);
+      hl.style.transition = 'left .42s cubic-bezier(.34,1.56,.64,1), width .42s cubic-bezier(.34,1.56,.64,1)';
+      hl.style.left = targetRect.x + 'px';
+      hl.style.width = targetRect.w + 'px';
+      refractPill.style.transition = 'left .42s cubic-bezier(.34,1.56,.64,1), width .42s cubic-bezier(.34,1.56,.64,1)';
+      refractPill.style.left = targetRect.x + 'px';
+      refractPill.style.width = targetRect.w + 'px';
+      if (!g) return;
+      tween(g.__pos || targetRect, targetRect, 420, p => { g.setLens(p); g.__pos = p; });
+    });
+  });
+})();
+
+/* ── 5. CURSOR LENS ── */
+(function initCursorLens() {
+  const stage = document.getElementById('lensStage');
+  let g;
+  stage.addEventListener('mouseenter', () => {
+    if (g) return;
+    g = createGlass(stage, {
+      lens: { x: 50, y: 50, w: 180, h: 180, r: 90 },
+      scale: 15, depth: 127, curvature: 0.7, curvaturePow: 2.0, glowSide: 34, glowTop: 24
+    });
+  });
+  stage.addEventListener('mousemove', e => {
+    if (!g) return;
+    const r = stage.getBoundingClientRect();
+    g.setLens({ x: e.clientX - r.left - 90, y: e.clientY - r.top - 90, w: 180, h: 180, r: 90 });
+  });
+})();
+
+/* ── 6. QR CODE (WebGL) ── */
+(function initQR() {
+  const src = document.getElementById('qrSource');
+  const glc = document.getElementById('qrGlass');
+  const container = document.getElementById('qrContainer');
+  const ctx = src.getContext('2d');
+  const S = 200, M = 11;
+
+  function drawAaveQR() {
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, S, S);
+    ctx.fillStyle = '#1e1a38';
+    const ms = S / (M + 2);
+    function drawEye(ox, oy) {
+      ctx.fillStyle = '#6c5ce7';
+      ctx.beginPath();
+      ctx.roundRect(ox, oy, ms * 3.5, ms * 3.5, 8);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.roundRect(ox + ms * 0.7, oy + ms * 0.7, ms * 2.1, ms * 2.1, 4);
+      ctx.fill();
+      ctx.fillStyle = '#1e1a38';
+      ctx.beginPath();
+      ctx.roundRect(ox + ms * 1.1, oy + ms * 1.1, ms * 1.3, ms * 1.3, 3);
+      ctx.fill();
+    }
+    drawEye(ms, ms);
+    drawEye(S - ms * 4.5, ms);
+    drawEye(ms, S - ms * 4.5);
+
+    // Data dots
+    for (let r = 0; r < M; r++) {
+      for (let c = 0; c < M; c++) {
+        if ((r < 4 && c < 4) || (r < 4 && c > M - 5) || (r > M - 5 && c < 4)) continue;
+        if (((r * 5 + c * 11 + 7) % 3) === 0) {
+          ctx.fillStyle = ((r + c) % 2 === 0) ? '#6c5ce7' : '#2d3436';
+          ctx.beginPath();
+          ctx.arc(ms * (c + 1.5), ms * (r + 1.5), ms * 0.4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+    }
+  }
+  drawAaveQR();
+
+  let wgl = null, toggled = false;
+  const lens = { x: 30, y: 30, w: 140, h: 140, r: 70 };
+
+  container.addEventListener('click', () => {
+    if (!wgl) {
+      wgl = createGlassWebGL(glc, src, {
+        lens, scale: 10, depth: 127, curvature: 0.7, curvaturePow: 2.0, glowSide: 44, glowTop: 30
+      });
+    }
+    toggled = !toggled;
+    if (toggled) {
+      wgl.setLens(lens);
+      wgl.render();
+      glc.style.opacity = '1';
+    } else {
+      glc.style.opacity = '0';
+    }
+  });
+})();
+
+/* ── 7. DYNAMIC CANVAS SCENE (WebGL) ── */
+(function initDynamicScene() {
+  const src = document.getElementById('dynSource');
+  const glc = document.getElementById('dynGlass');
+  const container = document.getElementById('dynContainer');
+  const ctx = src.getContext('2d');
+  const W = 400, H = 225;
+  const particles = Array.from({ length: 30 }, () => ({
+    x: Math.random() * W, y: Math.random() * H,
+    vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5,
+    r: 10 + Math.random() * 25,
+    c: ['#ff7675', '#74b9ff', '#fd79a8', '#00cec9', '#a29bfe'][Math.floor(Math.random() * 5)]
+  }));
+
+  function anim(t) {
+    ctx.fillStyle = '#141226';
+    ctx.fillRect(0, 0, W, H);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > W) p.vx *= -1;
+      if (p.y < 0 || p.y > H) p.vy *= -1;
+      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+      g.addColorStop(0, p.c);
+      g.addColorStop(1, 'transparent');
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 22px Plus Jakarta Sans, sans-serif';
+    ctx.fillText('Live WebGL Texture', 24, 40);
+    ctx.font = '14px Plus Jakarta Sans, sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillText('Move pointer to bend moving particles', 24, 66);
+    requestAnimationFrame(anim);
+  }
+  requestAnimationFrame(anim);
+
+  let wgl = null;
+  const lensR = 75;
+
+  container.addEventListener('mouseenter', () => {
+    if (!wgl) {
+      wgl = createGlassWebGL(glc, src, {
+        lens: { x: 50, y: 50, w: lensR * 2, h: lensR * 2, r: lensR },
+        scale: 10, depth: 127, curvature: 0.7, curvaturePow: 2.0, glowSide: 35, glowTop: 22
+      });
+      (function loop() {
+        if (wgl) wgl.render();
+        requestAnimationFrame(loop);
+      })();
+    }
+  });
+
+  container.addEventListener('mousemove', e => {
+    if (!wgl) return;
+    const r = container.getBoundingClientRect();
+    const sx = W / r.width, sy = H / r.height;
+    wgl.setLens({
+      x: (e.clientX - r.left) * sx - lensR,
+      y: (e.clientY - r.top) * sy - lensR,
+      w: lensR * 2, h: lensR * 2, r: lensR
+    });
+  });
+})();
+
+/* ── 8. PLAYGROUND CONTROLS ── */
+(function initPlayground() {
+  const result = document.getElementById('pgResult');
+  const mapImg = document.getElementById('pgMap');
+  const ids = ['cWidth','cHeight','cRadius','cScale','cDepth','cCurv','cSplay','cChroma','cBlur','cGlow','cEdge','cAngle'];
+  const labels = {
+    cWidth:'vWidth', cHeight:'vHeight', cRadius:'vRadius', cScale:'vScale',
+    cDepth:'vDepth', cCurv:'vCurv', cSplay:'vSplay', cChroma:'vChroma',
+    cBlur:'vBlur', cGlow:'vGlow', cEdge:'vEdge', cAngle:'vAngle'
+  };
+  let g = null, queued = false, gStop = () => {};
+
+  function readParams() {
+    return {
+      w: +document.getElementById('cWidth').value,
+      h: +document.getElementById('cHeight').value,
+      rad: +document.getElementById('cRadius').value,
+      scale: +document.getElementById('cScale').value,
+      depth: +document.getElementById('cDepth').value,
+      curv: +document.getElementById('cCurv').value,
+      splay: +document.getElementById('cSplay').value,
+      chroma: +document.getElementById('cChroma').value,
+      blur: +document.getElementById('cBlur').value,
+      glow: +document.getElementById('cGlow').value,
+      edge: +document.getElementById('cEdge').value,
+      angle: +document.getElementById('cAngle').value
+    };
+  }
+
+  function refresh() {
+    queued = false;
+    const p = readParams();
+    for (const id of ids) {
+      const val = (+document.getElementById(id).value);
+      document.getElementById(labels[id]).textContent = id === 'cAngle' ? val + '°' : val.toString().slice(0, 5);
+    }
+
+    const mapDepth = Math.round(p.depth * (127 / 60));
+    const curvature = Math.max(0, Math.min(1, p.curv / 100));
+    const curvaturePow = 0.1 + p.splay * 2.9;
+    const radAngle = p.angle * Math.PI / 180;
+    const glowSide = Math.round(p.glow * 100 * Math.cos(radAngle) + p.edge * 60);
+    const glowTop = Math.round(p.glow * 100 * Math.sin(radAngle) + p.edge * 30);
+
+    const rr = result.getBoundingClientRect();
+    const lw = Math.round(p.w / 120 * rr.width * 0.65);
+    const lh = Math.round(p.h / 80 * rr.height * 0.65);
+    const lr = Math.round(p.rad / 64 * Math.min(lw, lh) / 2);
+
+    mapImg.src = generateMap({
+      w: 256, h: Math.round(256 * lh / lw),
+      radius: lr * (256 / lw),
+      depth: mapDepth, curvature, curvaturePow,
+      glowSide: Math.abs(glowSide), glowTop: Math.abs(glowTop)
+    }).dataUrl;
+
+    if (g) { g.destroy(); g = null; }
+    let alive = true;
+    const cx = (rr.width - lw) / 2;
+    const cy = (rr.height - lh) / 2;
+
+    g = createGlass(result, {
+      lens: { x: cx, y: cy, w: lw, h: lh, r: lr },
+      scale: p.scale, depth: mapDepth, curvature, curvaturePow,
+      chroma: [1 + p.chroma, 1 + p.chroma / 2, 1],
+      blurPx: p.blur,
+      glowSide: Math.abs(glowSide), glowTop: Math.abs(glowTop)
+    });
+
+    gStop();
+    gStop = () => { alive = false; };
+    const t0 = performance.now();
+    (function drift(t) {
+      if (!alive) return;
+      const k = (t - t0) / 1000;
+      g.setLens({
+        x: cx + Math.sin(k * 0.9) * 35,
+        y: cy + Math.cos(k * 0.6) * 15,
+        w: lw, h: lh, r: lr
+      });
+      requestAnimationFrame(drift);
+    })(t0);
+  }
+
+  function queueUpdate() {
+    if (!queued) {
+      queued = true;
+      requestAnimationFrame(refresh);
+    }
+  }
+
+  ids.forEach(id => document.getElementById(id).addEventListener('input', queueUpdate));
+  refresh();
+})();
+</script>
+</body>
+</html>

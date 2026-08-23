@@ -3,70 +3,332 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Glass for the Web — Aave technique replica</title>
+<title>Glass for the Web — Dark Edition</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0b0c11;--text:#ecedf2;--muted:#8a8ea3;--font:'Inter',system-ui,sans-serif}
-body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
-.page{max-width:880px;margin:0 auto;padding:4rem 1.5rem 6rem}
-h1{font-size:clamp(1.9rem,4.5vw,2.9rem);font-weight:800;letter-spacing:-.03em;margin-bottom:.7rem;background:linear-gradient(145deg,#fff 30%,rgba(255,255,255,.45));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-.sub{color:var(--muted);font-size:.95rem;line-height:1.6;max-width:600px;margin-bottom:2.6rem}
-.grid{display:grid;grid-template-columns:1fr 1fr;gap:1.4rem}
-@media(max-width:700px){.grid{grid-template-columns:1fr}}
-.panel{position:relative;border-radius:22px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);padding:1.6rem;display:flex;flex-direction:column;gap:.9rem;min-height:170px}
-.panel h3{font-size:.82rem;font-weight:600;color:rgba(255,255,255,.55);letter-spacing:.02em}
-.panel p{font-size:.75rem;color:var(--muted);line-height:1.55}
-.demo-area{flex:1;display:flex;align-items:center;justify-content:center}
+:root{
+  --bg:#0c0b14;
+  --card-bg:rgba(255,255,255,0.04);
+  --border:rgba(255,255,255,0.08);
+  --text:#f0f0f8;
+  --muted:#8b86a3;
+  --primary:#8075ff;
+  --primary-glow:rgba(128,117,255,0.3);
+  --font:'Plus Jakarta Sans',system-ui,sans-serif;
+  --font-mono:'JetBrains Mono',monospace;
+}
 
-/* ── SWITCH (44×22 thumb like Aave's) ── */
-.sw{position:relative;width:120px;height:52px;border-radius:26px;background:rgba(255,255,255,.08);cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent}
-.sw-fill{position:absolute;inset:0;border-radius:17px;background:linear-gradient(90deg,#4f8dff,#9b5cff);opacity:.28;transition:opacity .35s}
-.sw.on .sw-fill{opacity:1}
-.sw-thumb{position:absolute;top:8px;left:8px;width:36px;height:36px;border-radius:18px;background:rgba(255,255,255,.95);box-shadow:0 2px 6px rgba(0,0,0,.35);transition:transform .38s cubic-bezier(.34,1.56,.64,1)}
-.sw.on .sw-thumb{transform:translateX(68px)}
+body{
+  font-family:var(--font);
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+  line-height:1.5;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+.page{
+  max-width:920px;
+  margin:0 auto;
+  padding:4rem 1.5rem 6rem;
+}
+
+.tag{
+  display:inline-flex;
+  align-items:center;
+  gap:.45rem;
+  font-size:.7rem;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--primary);
+  background:rgba(128,117,255,.1);
+  border:1px solid rgba(128,117,255,.22);
+  padding:.35rem .8rem;
+  border-radius:999px;
+  margin-bottom:1rem;
+}
+
+h1{
+  font-size:clamp(2rem, 5vw, 3.2rem);
+  font-weight:800;
+  letter-spacing:-.03em;
+  margin-bottom:.8rem;
+  background:linear-gradient(145deg, #ffffff 40%, rgba(255,255,255,.55));
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+
+.sub{
+  color:var(--muted);
+  font-size:1rem;
+  line-height:1.6;
+  max-width:620px;
+  margin-bottom:2.8rem;
+}
+
+/* ── HERO ── */
+.hero{
+  position:relative;
+  border-radius:28px;
+  overflow:hidden;
+  margin-bottom:1.8rem;
+  height:280px;
+  background:#131122;
+  box-shadow:0 20px 40px rgba(0,0,0,.4), 0 0 0 1px rgba(255,255,255,.08) inset;
+}
+.cosmic-bg{
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle 260px at 15% 25%, rgba(255,107,129,.7), transparent 70%),
+    radial-gradient(circle 280px at 85% 20%, rgba(108,92,231,.75), transparent 70%),
+    radial-gradient(circle 240px at 60% 85%, rgba(0,206,201,.6), transparent 70%),
+    linear-gradient(135deg, #241947, #0d0a1c);
+}
+.cosmic-dots{
+  position:absolute;
+  inset:0;
+  background-image:radial-gradient(rgba(255,255,255,.2) 1px, transparent 1px);
+  background-size:24px 24px;
+}
+.hero-chip{
+  position:absolute;
+  display:flex;
+  align-items:center;
+  gap:.6rem;
+  padding:.65rem 1.1rem;
+  border-radius:999px;
+  background:rgba(18,15,32,.7);
+  backdrop-filter:blur(8px);
+  color:#fff;
+  font-size:.85rem;
+  font-weight:700;
+  border:1px solid rgba(255,255,255,.15);
+}
+.chip-dot{
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  background:linear-gradient(135deg, #00cec9, #8075ff);
+  box-shadow:0 0 8px #8075ff;
+}
+
+/* ── GRID ── */
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:1.4rem;
+}
+@media(max-width:720px){.grid{grid-template-columns:1fr}}
+
+.panel{
+  position:relative;
+  border-radius:24px;
+  background:var(--card-bg);
+  border:1px solid var(--border);
+  box-shadow:0 12px 30px rgba(0,0,0,.3);
+  padding:1.6rem;
+  display:flex;
+  flex-direction:column;
+  gap:1rem;
+  min-height:180px;
+}
+.panel h3{
+  font-size:.9rem;
+  font-weight:700;
+  letter-spacing:-.01em;
+  color:#fff;
+}
+.panel p{
+  font-size:.78rem;
+  color:var(--muted);
+  line-height:1.55;
+}
+.demo-area{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  border-radius:18px;
+  overflow:hidden;
+  min-height:120px;
+}
+.vivid-panel-bg{
+  position:absolute;
+  inset:0;
+  background:
+    radial-gradient(circle 120px at 20% 30%, rgba(255,107,129,.7), transparent 70%),
+    radial-gradient(circle 140px at 80% 25%, rgba(108,92,231,.75), transparent 70%),
+    radial-gradient(circle 120px at 55% 85%, rgba(0,206,201,.65), transparent 70%),
+    linear-gradient(135deg, #241947, #0d0a1c);
+}
+
+/* ── SWITCH ── */
+.sw{
+  position:relative;
+  width:126px;
+  height:58px;
+  border-radius:29px;
+  background:rgba(255,255,255,.12);
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.3), 0 8px 20px rgba(0,0,0,.3);
+  cursor:pointer;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  z-index:2;
+}
+.sw-fill{
+  position:absolute;
+  inset:0;
+  border-radius:29px;
+  background:linear-gradient(90deg, #6c5ce7, #00cec9);
+  transform:scaleX(.85) scaleY(.525);
+  opacity:.3;
+  transition:opacity .35s;
+}
+.sw.on .sw-fill{
+  opacity:1;
+}
+.sw-thumb{
+  position:absolute;
+  top:7px;
+  left:7px;
+  width:44px;
+  height:44px;
+  border-radius:22px;
+  background:linear-gradient(180deg, #ffffff 0%, #e0e0ff 100%);
+  box-shadow:0 3px 10px rgba(0,0,0,.4), inset 0 1px 2px #fff;
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+}
+.sw.on .sw-thumb{
+  transform:translateX(68px);
+}
 
 /* ── SLIDER ── */
-.sl{position:relative;width:260px;height:52px;cursor:pointer;touch-action:none}
-.sl-track{position:absolute;left:6px;right:6px;top:50%;height:40px;transform:translateY(-50%);border-radius:20px;background:rgba(255,255,255,.09);overflow:hidden}
-.sl-fill{position:absolute;top:5px;bottom:5px;left:0;border-radius:15px;background:linear-gradient(90deg,#4f8dff,#9b5cff)}
-.sl-handle{position:absolute;top:11px;width:30px;height:30px;border-radius:15px;background:rgba(255,255,255,.94);box-shadow:0 2px 10px rgba(0,0,0,.45),inset 0 1px 2px #fff;cursor:grab;pointer-events:none}
-.sl-val{font-size:.75rem;color:var(--muted);margin-top:.5rem;text-align:center}
+.sl{
+  position:relative;
+  width:260px;
+  height:56px;
+  cursor:pointer;
+  touch-action:none;
+  z-index:2;
+}
+.sl-track{
+  position:absolute;
+  left:6px;
+  right:6px;
+  top:50%;
+  height:40px;
+  transform:translateY(-50%);
+  border-radius:20px;
+  background:rgba(255,255,255,.12);
+  box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.25);
+  overflow:hidden;
+}
+.sl-fill{
+  position:absolute;
+  top:5px;
+  bottom:5px;
+  left:0;
+  border-radius:15px;
+  background:linear-gradient(90deg, #6c5ce7, #00cec9);
+}
+.sl-handle{
+  position:absolute;
+  top:50%;
+  width:34px;
+  height:34px;
+  border-radius:17px;
+  margin-top:-17px;
+  background:linear-gradient(180deg, #ffffff, #e0e0ff);
+  box-shadow:0 3px 10px rgba(0,0,0,.45), inset 0 1px 2px #fff;
+  pointer-events:none;
+}
+.sl-val{
+  font-size:.76rem;
+  font-weight:700;
+  color:var(--muted);
+  margin-top:.4rem;
+  text-align:center;
+}
 
 /* ── TOGGLE GROUP ── */
-.tg{position:relative;display:flex;width:100%;background:rgba(255,255,255,.05);border-radius:14px;padding:4px;gap:0}
-.tg-item{flex:1;text-align:center;padding:.75rem .4rem;font-size:.82rem;font-weight:600;color:var(--muted);cursor:pointer;position:relative;z-index:2;transition:color .25s;user-select:none}
-.tg-item.active{color:#fff}
-.tg-hl{position:absolute;top:4px;left:4px;height:calc(100% - 8px);border-radius:10px;background:linear-gradient(90deg,rgba(79,141,255,.85),rgba(155,92,255,.85));z-index:0}
+.tg{
+  position:relative;
+  display:flex;
+  width:100%;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.15);
+  border-radius:18px;
+  padding:6px;
+  z-index:2;
+}
+.tg-item{
+  flex:1;
+  text-align:center;
+  padding:.75rem .4rem;
+  font-size:.82rem;
+  font-weight:700;
+  color:rgba(255,255,255,.6);
+  cursor:pointer;
+  position:relative;
+  z-index:3;
+  transition:color .25s;
+  user-select:none;
+}
+.tg-item.active{
+  color:#fff;
+}
+.tg-hl{
+  position:absolute;
+  top:6px;
+  left:6px;
+  height:calc(100% - 12px);
+  border-radius:14px;
+  background:linear-gradient(90deg, #6c5ce7, #a29bfe);
+  box-shadow:0 4px 12px rgba(108,92,231,.4);
+  z-index:1;
+}
 
-/* ── CURSOR LENS over photo ── */
-.stage{position:relative;width:100%;aspect-ratio:16/9;border-radius:18px;overflow:hidden;cursor:none;background:#111}
-.stage-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.stage-label{position:absolute;z-index:0;font-weight:800;letter-spacing:.02em;color:rgba(255,255,255,.85);text-shadow:0 1px 8px rgba(0,0,0,.4)}
-
-/* hero */
-.hero{position:relative;border-radius:24px;overflow:hidden;margin-bottom:1.4rem;aspect-ratio:21/9;background:#151723}
-.cosmic{position:absolute;inset:0;background:radial-gradient(ellipse 60% 80% at 20% 20%,rgba(79,141,255,.5),transparent 60%),radial-gradient(ellipse 50% 70% at 78% 30%,rgba(155,92,255,.45),transparent 65%),radial-gradient(ellipse 70% 60% at 50% 90%,rgba(0,200,160,.35),transparent 60%),radial-gradient(ellipse 30% 30% at 62% 62%,rgba(255,120,180,.25),transparent 70%),#0d1024}
-.stage-cosmic{background:radial-gradient(ellipse 55% 75% at 25% 30%,rgba(64,120,255,.55),transparent 62%),radial-gradient(ellipse 45% 60% at 72% 65%,rgba(170,80,255,.5),transparent 60%),radial-gradient(ellipse 40% 40% at 45% 85%,rgba(0,220,190,.3),transparent 65%),#0a0c1e}
-.hero-chip{position:absolute;display:flex;align-items:center;gap:.5rem;padding:.55rem .9rem;border-radius:999px;background:rgba(20,22,32,.55);color:#fff;font-size:.8rem;font-weight:600;backdrop-filter:none}
-.chip-dot{width:14px;height:14px;border-radius:50%;background:linear-gradient(135deg,#7aa2ff,#b48cff)}
-.tag{display:inline-block;font-size:.68rem;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:#7aa2ff;margin-bottom:.8rem}
-code{font-family:'SF Mono',monospace;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px;font-size:.85em}
+/* ── CURSOR LENS ── */
+.stage{
+  position:relative;
+  width:100%;
+  aspect-ratio:16/9;
+  border-radius:18px;
+  overflow:hidden;
+  cursor:none;
+  background:#111;
+}
+.stage-label{
+  position:absolute;
+  z-index:0;
+  font-weight:800;
+  letter-spacing:-.01em;
+  color:rgba(255,255,255,.9);
+  text-shadow:0 2px 10px rgba(0,0,0,.5);
+}
 </style>
 </head>
 <body>
 <div class="page">
 
-  <div class="tag">feDisplacementMap · objectBoundingBox · cross-browser</div>
+  <div class="tag">✦ Liquid Glass · Dark Theme</div>
   <h1>Glass for the Web</h1>
-  <p class="sub">Faithful replica of Aave's glass technique — a generated displacement-map PNG drives an SVG filter that bends the content's own pixels inside a lens-shaped region. Works in Chrome, Safari and Firefox.</p>
+  <p class="sub">Direct SVG displacement &amp; WebGL shader refraction on live content. Cross-browser without flags or fallbacks.</p>
 
-  <!-- HERO: static lens over imagery -->
+  <!-- HERO -->
   <div class="hero" id="hero">
-    <div class="cosmic"></div>
-    <div class="hero-chip" style="top:18%;left:12%">✦ Liquid Glass</div>
-    <div class="hero-chip" style="bottom:16%;right:14%"><span class="chip-dot"></span>Aave Glass</div>
+    <div class="cosmic-bg"></div>
+    <div class="cosmic-dots"></div>
+    <div class="hero-chip" style="top:18%;left:10%"><span class="chip-dot"></span>Liquid Glass</div>
+    <div class="hero-chip" style="bottom:16%;right:12%"><span class="chip-dot" style="background:linear-gradient(135deg,#ff7675,#fd79a8);box-shadow:0 0 8px #ff7675"></span>Aave Glass</div>
+    <div style="position:absolute;top:40%;left:36%;font-size:2.4rem;font-weight:800;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,.4);pointer-events:none">refraction</div>
   </div>
 
   <div class="grid">
@@ -74,17 +336,22 @@ code{font-family:'SF Mono',monospace;background:rgba(255,255,255,.07);padding:1p
     <!-- SWITCH -->
     <div class="panel">
       <h3>01 · Switch</h3>
-      <p>The thumb is the lens. It bends a copy of the track fill beneath it.</p>
+      <p>The thumb bends a duplicate fill layer into a glowing moving highlight.</p>
       <div class="demo-area">
-        <div class="sw" id="sw" role="switch" aria-checked="false" tabindex="0"></div>
+        <div class="vivid-panel-bg"></div>
+        <div class="sw" id="sw" role="switch" aria-checked="false" tabindex="0">
+          <div class="sw-fill"></div>
+          <div class="sw-thumb"></div>
+        </div>
       </div>
     </div>
 
     <!-- SLIDER -->
     <div class="panel">
       <h3>02 · Slider</h3>
-      <p>Dragging shifts only the filter region — the map never regenerates.</p>
+      <p>Dragging shifts the lens region along the track; map never regenerates.</p>
       <div class="demo-area" style="flex-direction:column">
+        <div class="vivid-panel-bg"></div>
         <div class="sl" id="sl">
           <div class="sl-track"><div class="sl-fill" id="slFill"></div></div>
           <div class="sl-handle" id="slHandle"></div>
@@ -95,9 +362,10 @@ code{font-family:'SF Mono',monospace;background:rgba(255,255,255,.07);padding:1p
 
     <!-- TOGGLE GROUP -->
     <div class="panel">
-      <h3>03 · Toggle group</h3>
-      <p>The glass is the selection indicator, bending a highlighted pill as it springs between options.</p>
+      <h3>03 · Toggle Group</h3>
+      <p>The glass indicator springs smoothly between options.</p>
       <div class="demo-area">
+        <div class="vivid-panel-bg"></div>
         <div class="tg" id="tg">
           <div class="tg-hl" id="tgHl"></div>
           <div class="tg-item active">Daily</div>
@@ -109,13 +377,14 @@ code{font-family:'SF Mono',monospace;background:rgba(255,255,255,.07);padding:1p
 
     <!-- CURSOR LENS -->
     <div class="panel">
-      <h3>04 · Cursor lens</h3>
-      <p>160×160 circular lens refracting live content under the pointer.</p>
+      <h3>04 · Cursor Lens</h3>
+      <p>170px circular lens refracting live elements with chromatic aberration.</p>
       <div class="demo-area" style="padding:0">
         <div class="stage" id="stage">
-          <div class="cosmic stage-cosmic"></div>
-          <div class="stage-label" style="top:12%;left:8%;font-size:1.3rem">Nebula</div>
-          <div class="stage-label" style="bottom:14%;right:10%;font-size:1rem">Deep Field</div>
+          <div class="cosmic-bg"></div>
+          <div class="cosmic-dots"></div>
+          <div class="stage-label" style="top:14%;left:10%;font-size:1.4rem">Nebula 4K</div>
+          <div class="stage-label" style="bottom:14%;right:12%;font-size:1.05rem">Deep Field</div>
         </div>
       </div>
     </div>
@@ -127,10 +396,9 @@ code{font-family:'SF Mono',monospace;background:rgba(255,255,255,.07);padding:1p
 <script>
 const GE = window.GlassEngine;
 
-/* spring-ish tween matching cubic-bezier(.34,1.56,.64,1) used by the CSS thumbs */
 function tween(from, to, dur, step, done) {
   const t0 = performance.now();
-  const c1 = 1.70158, c3 = c1 + 1;          // easeOutBack — matches CSS .34,1.56,.64,1 feel
+  const c1 = 1.70158, c3 = c1 + 1;
   function frame(t) {
     const k = Math.min((t - t0) / dur, 1);
     const u = k - 1;
@@ -142,55 +410,45 @@ function tween(from, to, dur, step, done) {
       h: from.h + (to.h - from.h) * k,
       r: from.r
     });
-    if (k < 1) requestAnimationFrame(frame); else done && done();
+    if (k < 1) requestAnimationFrame(frame);
+    else if (done) done();
   }
   requestAnimationFrame(frame);
 }
 
-/* ── HERO: one lens over each chip ── */
-const hero = document.getElementById('hero');
-function heroLenses() {
-  const hr = hero.getBoundingClientRect();
-  [...hero.querySelectorAll('.hero-chip')].forEach(chip => {
-    const cr = chip.getBoundingClientRect();
-    GE.createGlass(hero, {
-      lens: {
-        x: cr.left - hr.left - 6, y: cr.top - hr.top - 6,
-        w: cr.width + 12, h: cr.height + 12, r: 999
-      },
-      scale: 0.06, depth: 120, rimStart: 0.4, rimPow: 2.1, glowSide: 28, glowTop: 22
+/* ── HERO ── */
+(function() {
+  const hero = document.getElementById('hero');
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const hr = hero.getBoundingClientRect();
+    hero.querySelectorAll('.hero-chip').forEach(chip => {
+      const cr = chip.getBoundingClientRect();
+      GE.createGlass(hero, {
+        lens: { x: cr.left - hr.left - 6, y: cr.top - hr.top - 6, w: cr.width + 12, h: cr.height + 12, r: 999 },
+        scale: 0.06, depth: 120, rimStart: 0.4, rimPow: 2.1, glowSide: 28, glowTop: 22
+      });
     });
-  });
-}
-addEventListener('load', () => requestAnimationFrame(() => requestAnimationFrame(heroLenses)));
+  }));
+})();
 
 /* ── SWITCH ── */
 (function(){
   const root = document.getElementById('sw');
-  root.innerHTML =
-    '<div class="sw-fill"></div>' +
-    '<div class="sw-thumb"></div>';
   let on = false, g;
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      g = GE.createGlass(root, {
-        lens: { x: 8, y: 8, w: 36, h: 36, r: 18 },
-        scale: 0.14, depth: 127, rimStart: 0.76, rimPow: 2.3, glowSide: 54, glowTop: 21
-      });
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    g = GE.createGlass(root, {
+      lens: { x: 7, y: 7, w: 44, h: 44, r: 22 },
+      scale: 0.14, depth: 127, rimStart: 0.76, rimPow: 2.3, glowSide: 54, glowTop: 21
     });
-  });
-  function toggle(){
+    g.__pos = { x: 7, y: 7, w: 44, h: 44, r: 22 };
+  }));
+  root.addEventListener('click', () => {
     on = !on;
     root.classList.toggle('on', on);
     root.setAttribute('aria-checked', on);
     if (!g) return;
-    const from = g.__pos || { x: on ? 8 : 76, y: 8, w: 36, h: 36, r: 18 };
-    const to = { x: on ? 76 : 8, y: 8, w: 36, h: 36, r: 18 };
-    tween(from, to, 380, p => { g.setLens(p); g.__pos = p; });
-  }
-  root.addEventListener('click', toggle);
-  root.addEventListener('keydown', e => {
-    if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); toggle(); }
+    const target = { x: on ? 75 : 7, y: 7, w: 44, h: 44, r: 22 };
+    tween(g.__pos, target, 400, p => { g.setLens(p); g.__pos = p; });
   });
 })();
 
@@ -200,13 +458,13 @@ addEventListener('load', () => requestAnimationFrame(() => requestAnimationFrame
   const handle = document.getElementById('slHandle');
   const fill = document.getElementById('slFill');
   const val = document.getElementById('slVal');
-  const PAD = 14, HW = 30, TRAV = 260 - PAD*2 - HW;
-  let p = .5, dragging = false, g;
+  const PAD = 14, HW = 34, TRAV = 260 - PAD * 2 - HW;
+  let p = 0.5, dragging = false, g;
 
   requestAnimationFrame(() => requestAnimationFrame(() => {
     g = GE.createGlass(root, {
-      lens: { x: PAD + p*TRAV, y: 11, w: 30, h: 30, r: 15 },
-      scale: 0.055, depth: 127, rimStart: 0.68, rimPow: 2.2, glowSide: 44, glowTop: 18
+      lens: { x: PAD + p * TRAV, y: 11, w: HW, h: HW, r: HW / 2 },
+      scale: 0.06, depth: 127, rimStart: 0.68, rimPow: 2.2, glowSide: 44, glowTop: 18
     });
     render();
   }));
@@ -214,72 +472,67 @@ addEventListener('load', () => requestAnimationFrame(() => requestAnimationFrame
   function render(){
     const x = PAD + p * TRAV;
     handle.style.left = x + 'px';
-    fill.style.width = 'calc(' + (p * 100) + '% - ' + (HW/2) + 'px)';
+    fill.style.width = 'calc(' + (p * 100) + '% - ' + (HW / 2) + 'px)';
     val.textContent = Math.round(p * 100) + '%';
-    if (g) g.setLens({ x, y: 11, w: 30, h: 30, r: 15 });
+    if (g) g.setLens({ x, y: 11, w: HW, h: HW, r: HW / 2 });
   }
   const setFrom = cx => {
     const r = root.getBoundingClientRect();
-    p = Math.max(0, Math.min(1, (cx - r.left - PAD - HW/2) / TRAV));
+    p = Math.max(0, Math.min(1, (cx - r.left - PAD - HW / 2) / TRAV));
     render();
   };
   root.addEventListener('mousedown', e => { dragging = true; setFrom(e.clientX); });
-  root.addEventListener('touchstart', e => { dragging = true; setFrom(e.touches[0].clientX); }, {passive:true});
-  addEventListener('mousemove', e => dragging && setFrom(e.clientX));
-  addEventListener('touchmove', e => dragging && setFrom(e.touches[0].clientX));
-  addEventListener('mouseup', () => dragging = false);
-  addEventListener('touchend', () => dragging = false);
+  root.addEventListener('touchstart', e => { dragging = true; setFrom(e.touches[0].clientX); }, { passive: true });
+  window.addEventListener('mousemove', e => { if (dragging) setFrom(e.clientX); });
+  window.addEventListener('touchmove', e => { if (dragging) setFrom(e.touches[0].clientX); });
+  window.addEventListener('mouseup', () => { dragging = false; });
+  window.addEventListener('touchend', () => { dragging = false; });
 })();
 
 /* ── TOGGLE GROUP ── */
 (function(){
   const root = document.getElementById('tg');
   const items = [...root.querySelectorAll('.tg-item')];
-  let active = 0, g;
-
+  let g;
   function place(idx){
     const rr = root.getBoundingClientRect();
     const ir = items[idx].getBoundingClientRect();
-    return { x: ir.left - rr.left, y: 4, w: ir.width, h: ir.height, r: 10 };
+    return { x: ir.left - rr.left, y: 6, w: ir.width, h: ir.height, r: 14 };
   }
   requestAnimationFrame(() => requestAnimationFrame(() => {
     const l = place(0);
     const hl = document.getElementById('tgHl');
     hl.style.left = l.x + 'px'; hl.style.width = l.w + 'px';
-    g = GE.createGlass(root, { lens: l, scale: 0.0459, depth: 120, rimStart: 0.72, rimPow: 2.2, glowSide: 36, glowTop: 16 });
+    g = GE.createGlass(root, { lens: l, scale: 0.045, depth: 120, rimStart: 0.75, rimPow: 2.2, glowSide: 36, glowTop: 16 });
   }));
   items.forEach((it, i) => it.addEventListener('click', () => {
     items.forEach(x => x.classList.remove('active'));
     it.classList.add('active');
-    active = i;
     const l = place(i);
     const hl = document.getElementById('tgHl');
     hl.style.transition = 'left .4s cubic-bezier(.34,1.56,.64,1), width .4s cubic-bezier(.34,1.56,.64,1)';
     hl.style.left = l.x + 'px'; hl.style.width = l.w + 'px';
     if (!g) return;
     const from = g.__pos || l;
-    tween(from, l, 420, p => { g.setLens(p); g.__pos = p; });
+    tween(from, l, 400, p => { g.setLens(p); g.__pos = p; });
   }));
 })();
 
 /* ── CURSOR LENS ── */
 (function(){
   const stage = document.getElementById('stage');
-  let g, started = false;
+  let g;
   stage.addEventListener('mouseenter', () => {
-    if (!started) {
-      started = true;
-      g = GE.createGlass(stage, {
-        lens: { x: 40, y: 40, w: 160, h: 160, r: 80 },
-        scale: 0.0756, depth: 127, rimStart: 0.35, rimPow: 2.1, glowSide: 30, glowTop: 24
-      });
-    }
+    if (g) return;
+    g = GE.createGlass(stage, {
+      lens: { x: 40, y: 40, w: 170, h: 170, r: 85 },
+      scale: 0.0756, depth: 127, rimStart: 0.35, rimPow: 2.1, glowSide: 30, glowTop: 24
+    });
   });
   stage.addEventListener('mousemove', e => {
     if (!g) return;
     const r = stage.getBoundingClientRect();
-    const mx = e.clientX - r.left, my = e.clientY - r.top;
-    g.setLens({ x: mx - 80, y: my - 80, w: 160, h: 160, r: 80 });
+    g.setLens({ x: e.clientX - r.left - 85, y: e.clientY - r.top - 85, w: 170, h: 170, r: 85 });
   });
 })();
 </script>
