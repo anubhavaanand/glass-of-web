@@ -3,6 +3,7 @@
  *
  * Architecture per Aave Labs' "Building Glass for the Web":
  *   - 2D SDF normals → displacement map (R=horizontal, G=vertical, B=specular)
+ *   - 4-Fold Quadrant Symmetry: 4x speedup computing top-left quadrant and mirroring
  *   - SVG filter: userSpaceOnUse (cross-browser), feImage with objectBoundingBox fractions
  *   - Chromatic aberration: 3× feDisplacementMap at scale×[1.08, 1.04, 1.0]
  *   - Specular rim highlight from map blue channel
@@ -10,6 +11,7 @@
  *   - Specular overlay: CSS inset box-shadow + border (reliable, no filter overhead)
  *   - Filter IDs regenerated per update (Safari caches filter output by ID)
  *   - Map cached per shape dimensions; lens movement only shifts feImage region
+ *   - WebGL renderer with multi-lens setLenses support for canvas/video controls
  */
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -33,21 +35,15 @@ function cachedMap(opts) {
   return _mapCache.get(key);
 }
 
-/* ---------- 1. DISPLACEMENT MAP GENERATOR ----------
+/* ---------- 1. DISPLACEMENT MAP GENERATOR (4-FOLD QUADRANT SYMMETRY) ----------
  *
  * Rounded-rect SDF with center-inward displacement.
- * The SDF gives a signed distance: negative inside, positive outside.
- * Displacement = directionTowardCenter × depth × edgeFactor.
+ * Computes top-left quadrant and mirrors to all 4 quadrants for 4x speedup.
  *
  * RGB encoding (neutral 128):
  *   R: horizontal displacement (left side → positive, right side → negative)
  *   G: vertical displacement (top → positive, bottom → negative)
  *   B: specular glow (brighter at rim, especially side edges)
- *
- * Usage:
- *   const {dataUrl, canvas} = generateMap({w, h, radius, ...});
- *   dataUrl → feImage href (SVG filter)
- *   canvas  → direct rendering (playground preview)
  */
 
 function generateMap(opts) {
@@ -88,35 +84,42 @@ function generateMap(opts) {
            Math.hypot(Math.max(dx, 0), Math.max(dy, 0)) - R;
   }
 
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const i = (y * w + x) * 4;
+  const halfW = Math.ceil(w / 2);
+  const halfH = Math.ceil(h / 2);
+
+  for (let y = 0; y < halfH; y++) {
+    for (let x = 0; x < halfW; x++) {
       const dist = sdf(x + 0.5, y + 0.5);
 
-      if (dist >= 0) {
-        d[i] = 128;
-        d[i + 1] = 128;
-        d[i + 2] = 128;
-        d[i + 3] = 255;
-        continue;
+      let rVal = 0, gVal = 0, bVal = 128;
+      if (dist < 0) {
+        const t = Math.min(1, Math.abs(dist) / R);
+        const edge = Math.pow(t, curvaturePow) * curvature;
+        const dx = cx - (x + 0.5);
+        const dy = cy - (y + 0.5);
+        const len = Math.hypot(dx, dy) || 1;
+        const nx = dx / len;
+        const ny = dy / len;
+        rVal = nx * depth * edge;
+        gVal = ny * depth * edge;
+        bVal = clamp(128 + ((Math.abs(nx) > Math.abs(ny)) ? glowSide : glowTop) * edge);
       }
 
-      /* Normalized edge factor: 0 at center, 1 at rim */
-      const t = Math.min(1, Math.abs(dist) / R);
-      const edge = Math.pow(t, curvaturePow) * curvature;
+      const pts = [
+        { px: x,         py: y,         signX: 1,  signY: 1 },
+        { px: w - 1 - x, py: y,         signX: -1, signY: 1 },
+        { px: x,         py: h - 1 - y, signX: 1,  signY: -1 },
+        { px: w - 1 - x, py: h - 1 - y, signX: -1, signY: -1 }
+      ];
 
-      /* Direction toward lens center (displacement pulls content inward) */
-      const dx = cx - (x + 0.5);
-      const dy = cy - (y + 0.5);
-      const len = Math.hypot(dx, dy) || 1;
-      const nx = dx / len;
-      const ny = dy / len;
-
-      /* RGB displacement — toward center = positive R/G at left/top edges */
-      d[i]     = clamp(128 + nx * depth * edge);
-      d[i + 1] = clamp(128 + ny * depth * edge);
-      d[i + 2] = clamp(128 + ((Math.abs(nx) > Math.abs(ny)) ? glowSide : glowTop) * edge);
-      d[i + 3] = 255;
+      for (const p of pts) {
+        if (p.px < 0 || p.px >= w || p.py < 0 || p.py >= h) continue;
+        const i = (p.py * w + p.px) * 4;
+        d[i]     = clamp(128 + rVal * p.signX);
+        d[i + 1] = clamp(128 + gVal * p.signY);
+        d[i + 2] = bVal;
+        d[i + 3] = 255;
+      }
     }
   }
 
@@ -132,6 +135,7 @@ function generateMap(opts) {
  *   - feImage x/y/w/h in objectBoundingBox fractions (positions the map)
  *   - feDisplacementMap x/y/w/h in userSpaceOnUse pixels (samples in element space)
  *   - Gaussian blur uses fractional stdDeviation relative to element size
+ *   - Safari specular pass sub-region optimization
  */
 
 function buildFilter(defs, o) {
@@ -243,12 +247,22 @@ function buildFilter(defs, o) {
 
   /* 11–12. Specular highlight from map blue channel */
   if (specular) {
+    const isSafari = typeof navigator !== 'undefined' &&
+      /Safari/.test(navigator.userAgent) && !_isChrome();
+
     const specMask = svgEl('feColorMatrix');
     specMask.setAttribute('in', 'map');
     specMask.setAttribute('type', 'matrix');
     specMask.setAttribute('values',
       '0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 1 0 -0.5019607843137255');
     specMask.setAttribute('result', 'specMask');
+
+    if (isSafari) {
+      specMask.setAttribute('x', px.x);
+      specMask.setAttribute('y', px.y);
+      specMask.setAttribute('width', px.w);
+      specMask.setAttribute('height', px.h);
+    }
 
     const specAdd = svgEl('feComposite');
     specAdd.setAttribute('in', 'specMask');
@@ -289,6 +303,11 @@ function buildFilter(defs, o) {
   return id;
 }
 
+function _isChrome() {
+  return typeof navigator !== 'undefined' &&
+    (/Chrome/.test(navigator.userAgent) || /CriOS/.test(navigator.userAgent));
+}
+
 /* Keep-one-channel matrix for chromatic aberration */
 function _keepMatrix(k) {
   const rows = [];
@@ -304,19 +323,7 @@ function _keepMatrix(k) {
   return rows.join('  ');
 }
 
-/* ---------- 3. HIGH-LEVEL COMPONENT HELPER ----------
- *
- * createGlass(container, {
- *   lens: {x, y, w, h, r},   pixel rect relative to container
- *   scale, depth, curvature, curvaturePow, glowSide, glowTop,
- *   chroma, specular, blurPx
- * })
- *
- * Returns { setLens(pxRect), refresh(), destroy(), mapCanvas }
- *
- * Filter goes directly on the content element (no wrapper).
- * SVG defs sit as a zero-size sibling. Layout untouched.
- */
+/* ---------- 3. HIGH-LEVEL COMPONENT HELPER ---------- */
 
 function createGlass(container, o) {
   o = o || {};
@@ -407,13 +414,7 @@ function createGlass(container, o) {
   };
 }
 
-/* ---------- 4. SPECULAR OVERLAY HELPER ----------
- *
- * Creates a positioned div with inset box-shadows and a subtle white border
- * to simulate the specular rim highlight without filter overhead.
- *
- * applySpecular(container, lensPx) → overlay element
- */
+/* ---------- 4. SPECULAR OVERLAY HELPER ---------- */
 
 function applySpecular(container, lensPx) {
   const el = document.createElement('div');
@@ -430,19 +431,13 @@ function applySpecular(container, lensPx) {
   return el;
 }
 
-/* ---------- 5. WEBGL RENDERER (canvas/video surfaces) ----------
- * Same displacement map, same refraction — but via a WebGL shader.
- * Use when the source is a <canvas> or <video> that Safari refuses to SVG-filter.
- *
- * createGlassWebGL(glCanvas, source, {
- *   lens: {x,y,w,h,r},   // px in source coords
- *   scale, depth, curvature, curvaturePow, glowSide, glowTop,
- *   chroma, specular
- * })
- * Returns { setLens(pxRect), render(), destroy() }
+/* ---------- 5. WEBGL RENDERER (MULTI-LENS & CANVAS/VIDEO SUPPORT) ----------
+ * Same displacement map, same refraction — via WebGL fragment shader.
+ * Supports setLens(lens) AND setLenses([lens1, lens2, ...]) for multi-control
+ * UI surfaces like video player controls.
  */
 
-const _VS = `
+const _VS_BASE = `
 attribute vec2 a_pos;
 varying vec2 v_uv;
 void main() {
@@ -450,7 +445,15 @@ void main() {
   gl_Position = vec4(a_pos, 0.0, 1.0);
 }`;
 
-const _FS = `
+const _FS_BASE = `
+precision mediump float;
+uniform sampler2D u_source;
+varying vec2 v_uv;
+void main() {
+  gl_FragColor = texture2D(u_source, v_uv);
+}`;
+
+const _FS_LENS = `
 precision mediump float;
 uniform sampler2D u_source;
 uniform sampler2D u_map;
@@ -464,8 +467,7 @@ void main() {
   vec2 uv = v_uv;
   vec2 lensUV = (uv - u_lens.xy) / u_lens.zw;
   if (lensUV.x < 0.0 || lensUV.x > 1.0 || lensUV.y < 0.0 || lensUV.y > 1.0) {
-    gl_FragColor = texture2D(u_source, uv);
-    return;
+    discard;
   }
   vec4 mapVal = texture2D(u_map, lensUV);
   vec2 disp = (mapVal.rg - 0.5) * 2.0;
@@ -489,41 +491,26 @@ function _compileShader(gl, type, src) {
 
 function createGlassWebGL(glCanvas, source, o) {
   o = o || {};
-  const lens = o.lens || { x: 0, y: 0, w: 100, h: 100, r: 50 };
-  const scale = o.scale ?? 40;
-  const depth = o.depth ?? 127;
-  const curvature = o.curvature ?? 0.5;
-  const curvaturePow = o.curvaturePow ?? 1.0;
-  const glowSide = o.glowSide ?? 54;
-  const glowTop = o.glowTop ?? 21;
-  const chroma = o.chroma || [1.08, 1.04, 1.0];
-  const specular = o.specular !== false;
-
-  const gl = glCanvas.getContext('webgl', { premultipliedAlpha: false, alpha: true });
+  const gl = glCanvas.getContext('webgl', { premultipliedAlpha: false, alpha: true, preserveDrawingBuffer: true });
   if (!gl) { console.warn('WebGL not available'); return null; }
 
-  const prog = gl.createProgram();
-  gl.attachShader(prog, _compileShader(gl, gl.VERTEX_SHADER, _VS));
-  gl.attachShader(prog, _compileShader(gl, gl.FRAGMENT_SHADER, _FS));
-  gl.linkProgram(prog);
-  gl.useProgram(prog);
+  // Base program (background video/canvas)
+  const baseProg = gl.createProgram();
+  gl.attachShader(baseProg, _compileShader(gl, gl.VERTEX_SHADER, _VS_BASE));
+  gl.attachShader(baseProg, _compileShader(gl, gl.FRAGMENT_SHADER, _FS_BASE));
+  gl.linkProgram(baseProg);
+
+  // Lens program (refraction)
+  const lensProg = gl.createProgram();
+  gl.attachShader(lensProg, _compileShader(gl, gl.VERTEX_SHADER, _VS_BASE));
+  gl.attachShader(lensProg, _compileShader(gl, gl.FRAGMENT_SHADER, _FS_LENS));
+  gl.linkProgram(lensProg);
 
   const buf = gl.createBuffer();
   gl.bindBuffer(gl.ARRAY_BUFFER, buf);
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
-  const aPos = gl.getAttribLocation(prog, 'a_pos');
-  gl.enableVertexAttribArray(aPos);
-  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
-
-  const uSource = gl.getUniformLocation(prog, 'u_source');
-  const uMap = gl.getUniformLocation(prog, 'u_map');
-  const uLens = gl.getUniformLocation(prog, 'u_lens');
-  const uScale = gl.getUniformLocation(prog, 'u_scale');
-  const uChroma = gl.getUniformLocation(prog, 'u_chroma');
-  const uSpecular = gl.getUniformLocation(prog, 'u_specular');
 
   const srcTex = gl.createTexture();
-  const mapTex = gl.createTexture();
 
   function setupTex(tex, unit) {
     gl.activeTexture(gl.TEXTURE0 + unit);
@@ -534,76 +521,143 @@ function createGlassWebGL(glCanvas, source, o) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
   }
   setupTex(srcTex, 0);
-  setupTex(mapTex, 1);
 
-  let currentMapHref = null;
+  let lensesList = [];
+  if (Array.isArray(o.lenses)) {
+    lensesList = o.lenses;
+  } else if (o.lens) {
+    lensesList = [Object.assign({
+      scale: o.scale ?? 0.05,
+      depth: o.depth ?? 127,
+      curvature: o.curvature ?? 0.5,
+      curvaturePow: o.curvaturePow ?? 1.0,
+      glowSide: o.glowSide ?? 54,
+      glowTop: o.glowTop ?? 21,
+      chroma: o.chroma || [1.08, 1.04, 1.0],
+      specular: o.specular !== false
+    }, o.lens)];
+  }
 
-  function updateMap(l) {
+  const mapTexMap = new Map();
+
+  function getMapTextureForLens(l) {
     const mapResult = cachedMap({
       w: Math.min(Math.round(l.w), 256),
       h: Math.min(Math.round(l.h), 256),
       radius: l.r,
-      depth: depth,
-      curvature: curvature,
-      curvaturePow: curvaturePow,
-      glowSide: glowSide,
-      glowTop: glowTop,
+      depth: l.depth ?? 127,
+      curvature: l.curvature ?? 0.5,
+      curvaturePow: l.curvaturePow ?? 1.0,
+      glowSide: l.glowSide ?? 54,
+      glowTop: l.glowTop ?? 21,
     });
+
     const href = mapResult.dataUrl;
-    if (href !== currentMapHref) {
-      currentMapHref = href;
-      const img = new Image();
-      img.onload = function() {
-        gl.activeTexture(gl.TEXTURE1);
-        gl.bindTexture(gl.TEXTURE_2D, mapTex);
-        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
-      };
-      img.src = href;
+    if (!mapTexMap.has(href)) {
+      const tex = gl.createTexture();
+      setupTex(tex, 1);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, mapResult.canvas);
+      mapTexMap.set(href, tex);
     }
+    return mapTexMap.get(href);
   }
 
-  let currentLens = lens;
-  updateMap(lens);
-
   function render() {
-    const sw = source.videoWidth || source.width;
-    const sh = source.videoHeight || source.height;
+    const sw = source.videoWidth || source.width || glCanvas.width;
+    const sh = source.videoHeight || source.height || glCanvas.height;
     if (!sw || !sh) return;
-    glCanvas.width = sw;
-    glCanvas.height = sh;
+
+    if (glCanvas.width !== sw || glCanvas.height !== sh) {
+      glCanvas.width = sw;
+      glCanvas.height = sh;
+    }
     gl.viewport(0, 0, sw, sh);
+
+    // 1. Upload source texture
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, srcTex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
-    gl.uniform1i(uSource, 0);
-    gl.uniform1i(uMap, 1);
-    gl.uniform4f(uLens, currentLens.x / sw, currentLens.y / sh, currentLens.w / sw, currentLens.h / sh);
-    gl.uniform1f(uScale, scale);
-    gl.uniform3f(uChroma, chroma[0], chroma[1], chroma[2]);
-    gl.uniform1f(uSpecular, specular ? 1.0 : 0.0);
+
+    // 2. Draw base pass
+    gl.useProgram(baseProg);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    const aPosBase = gl.getAttribLocation(baseProg, 'a_pos');
+    gl.enableVertexAttribArray(aPosBase);
+    gl.vertexAttribPointer(aPosBase, 2, gl.FLOAT, false, 0, 0);
+    gl.uniform1i(gl.getUniformLocation(baseProg, 'u_source'), 0);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+
+    // 3. Draw lenses
+    if (lensesList.length > 0) {
+      gl.useProgram(lensProg);
+      const aPosLens = gl.getAttribLocation(lensProg, 'a_pos');
+      gl.enableVertexAttribArray(aPosLens);
+      gl.vertexAttribPointer(aPosLens, 2, gl.FLOAT, false, 0, 0);
+
+      const uSource = gl.getUniformLocation(lensProg, 'u_source');
+      const uMap = gl.getUniformLocation(lensProg, 'u_map');
+      const uLens = gl.getUniformLocation(lensProg, 'u_lens');
+      const uScale = gl.getUniformLocation(lensProg, 'u_scale');
+      const uChroma = gl.getUniformLocation(lensProg, 'u_chroma');
+      const uSpecular = gl.getUniformLocation(lensProg, 'u_specular');
+
+      gl.uniform1i(uSource, 0);
+      gl.uniform1i(uMap, 1);
+
+      for (const l of lensesList) {
+        const tex = getMapTextureForLens(l);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+
+        const sc = l.scale ?? 0.05;
+        const ch = l.chroma || [1.08, 1.04, 1.0];
+        const spec = l.specular !== false ? 1.0 : 0.0;
+
+        gl.uniform4f(uLens, l.x / sw, l.y / sh, l.w / sw, l.h / sh);
+        gl.uniform1f(uScale, sc);
+        gl.uniform3f(uChroma, ch[0], ch[1], ch[2]);
+        gl.uniform1f(uSpecular, spec);
+
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      }
+    }
   }
 
   function setLens(l) {
-    currentLens = l;
-    updateMap(l);
+    lensesList = [l];
+    render();
+  }
+
+  function setLenses(list) {
+    lensesList = list;
     render();
   }
 
   function destroy() {
     gl.deleteTexture(srcTex);
-    gl.deleteTexture(mapTex);
+    for (const tex of mapTexMap.values()) {
+      gl.deleteTexture(tex);
+    }
     gl.deleteBuffer(buf);
-    gl.deleteProgram(prog);
+    gl.deleteProgram(baseProg);
+    gl.deleteProgram(lensProg);
   }
 
-  return { setLens, render, destroy, get lens() { return currentLens; } };
+  return { setLens, setLenses, render, destroy, get lenses() { return lensesList; } };
 }
-
-/* ---------- 6. PUBLIC API ---------- */
 
 if (typeof window !== 'undefined') {
   window.GlassEngine = {
+    generateMap,
+    buildFilter,
+    createGlass,
+    applySpecular,
+    createGlassWebGL,
+  };
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = {
     generateMap,
     buildFilter,
     createGlass,

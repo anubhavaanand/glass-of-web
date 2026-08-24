@@ -773,6 +773,32 @@ footer code{
   </div>
 </section>
 
+<section>
+  <div class="sec-head">
+    <h2>Multi-Lens Surfaces</h2>
+    <span class="hint">WebGL video + canvas with independent glass controls</span>
+  </div>
+  <div class="card" style="grid-column: 1 / -1;">
+      <h3>Interactive Video Player (Multi-Lens WebGL)</h3>
+      <p>A live &lt;video&gt; texture rendered via WebGL with multi-lens control buttons (Play/Pause, Skip Back, Skip Forward, Scrub Bar), exactly per Aave Labs' article.</p>
+      <div class="stage-wrap" style="padding:0; background:#000;">
+        <div class="video-container" id="videoContainer" style="position:relative; width:100%; height:360px; overflow:hidden; border-radius:20px;">
+          <video id="vidSource" src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4" crossorigin="anonymous" playsinline muted loop style="display:none;"></video>
+          <canvas id="vidGlass" width="800" height="450" style="width:100%; height:100%; display:block;"></canvas>
+          <div class="video-controls-overlay" style="position:absolute; bottom:16px; left:16px; right:16px; display:flex; align-items:center; gap:12px; pointer-events:auto; z-index:10; background:rgba(0,0,0,0.5); padding:10px 16px; border-radius:14px; backdrop-filter:blur(8px);">
+            <button id="vidPlayBtn" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:6px 14px; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.9rem;">Play</button>
+            <button id="vidBackBtn" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:0.9rem;">↺ 10s</button>
+            <button id="vidFwdBtn" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:0.9rem;">10s ↻</button>
+            <div id="vidScrubTrack" style="flex:1; height:8px; background:rgba(255,255,255,0.2); border-radius:4px; position:relative; cursor:pointer;">
+              <div id="vidScrubFill" style="width:0%; height:100%; background:var(--primary); border-radius:4px;"></div>
+            </div>
+            <span id="vidTime" style="color:#fff; font-size:0.85rem; font-family:var(--font-mono); min-width:45px;">0:00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+</section>
+
 <!-- PLAYGROUND — 12 KNOBS -->
 <section>
   <div class="sec-head">
@@ -1278,4 +1304,90 @@ function tween(from, to, dur, onStep, onDone) {
 })();
 </script>
 </body>
+
+<script>
+/* ── 8. VIDEO PLAYER (Multi-Lens WebGL) ── */
+(function initVideoPlayer() {
+  const video = document.getElementById('vidSource');
+  const canvas = document.getElementById('vidGlass');
+  const playBtn = document.getElementById('vidPlayBtn');
+  const backBtn = document.getElementById('vidBackBtn');
+  const fwdBtn = document.getElementById('vidFwdBtn');
+  const scrubTrack = document.getElementById('vidScrubTrack');
+  const scrubFill = document.getElementById('vidScrubFill');
+  const timeEl = document.getElementById('vidTime');
+
+  if (!video || !canvas || !window.GlassEngine) return;
+
+  let wgl = null;
+  
+  video.addEventListener('loadedmetadata', () => {
+    const W = video.videoWidth || 800;
+    const H = video.videoHeight || 450;
+    canvas.width = W;
+    canvas.height = H;
+
+    const updateLenses = () => {
+      const curW = canvas.width;
+      const curH = canvas.height;
+      const lenses = [
+        { x: 20,  y: curH - 55, w: 70,  h: 36, r: 18, scale: 0.04, depth: 100, curvature: 0.6 },
+        { x: 100, y: curH - 55, w: 60,  h: 36, r: 18, scale: 0.04, depth: 100, curvature: 0.6 },
+        { x: 170, y: curH - 55, w: 60,  h: 36, r: 18, scale: 0.04, depth: 100, curvature: 0.6 },
+        { x: 240, y: curH - 49, w: curW - 300, h: 24, r: 12, scale: 0.02, depth: 60, curvature: 0.4 }
+      ];
+      if (wgl) {
+        wgl.setLenses(lenses);
+      }
+    };
+
+    wgl = GlassEngine.createGlassWebGL(canvas, video, { lenses: [] });
+    updateLenses();
+
+    function renderLoop() {
+      if (wgl && video.readyState >= 2) {
+        wgl.render();
+        updateLenses();
+        const cur = video.currentTime;
+        const dur = video.duration || 1;
+        scrubFill.style.width = (cur / dur * 100) + '%';
+        const m = Math.floor(cur / 60);
+        const s = Math.floor(cur % 60);
+        timeEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+      }
+      requestAnimationFrame(renderLoop);
+    }
+    requestAnimationFrame(renderLoop);
+  });
+
+  playBtn.addEventListener('click', () => {
+    if (video.paused) {
+      video.play();
+      playBtn.textContent = 'Pause';
+    } else {
+      video.pause();
+      playBtn.textContent = 'Play';
+    }
+  });
+
+  backBtn.addEventListener('click', () => {
+    video.currentTime = Math.max(0, video.currentTime - 10);
+  });
+
+  fwdBtn.addEventListener('click', () => {
+    video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
+  });
+
+  scrubTrack.addEventListener('click', e => {
+    const r = scrubTrack.getBoundingClientRect();
+    const pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+    if (video.duration) {
+      video.currentTime = pct * video.duration;
+    }
+  });
+
+  video.load();
+})();
+</script>
+
 </html>
