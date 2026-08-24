@@ -82,6 +82,30 @@ h1{
   margin-bottom:.9rem;
   color:#110e1b;
 }
+/* ── HERO TITLE LENS STAGE ── */
+.title-stage{
+  position:relative;
+  padding:1.7rem 2.2rem 1.55rem;
+  margin:-.4rem -2.2rem 0;
+  border-radius:30px;
+  background:#f7f5fd;
+  cursor:default;
+}
+.title-bg{
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:
+    radial-gradient(430px 210px at 16% 28%, rgba(108,92,231,.20), transparent 64%),
+    radial-gradient(390px 230px at 84% 22%, rgba(255,118,117,.16), transparent 60%),
+    radial-gradient(470px 250px at 55% 95%, rgba(0,206,201,.17), transparent 64%),
+    radial-gradient(300px 180px at 70% 60%, rgba(9,132,227,.12), transparent 60%);
+  pointer-events:none;
+}
+.title-stage h1{
+  position:relative;
+  margin-bottom:0;
+}
 .sub{
   color:var(--fg-2);
   font-size:1.05rem;
@@ -242,6 +266,24 @@ h2{
   -webkit-tap-highlight-color:transparent;
   z-index:2;
 }
+.sw-labels{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 20px;
+  font-size:.68rem;
+  font-weight:800;
+  letter-spacing:.14em;
+  color:rgba(255,255,255,.95);
+  text-shadow:0 1px 4px rgba(0,0,0,.25);
+  pointer-events:none;
+}
+.sw-labels .off{opacity:.9}
+.sw-labels .on{opacity:.35;transition:opacity .3s}
+.sw.on .sw-labels .on{opacity:.9}
+.sw.on .sw-labels .off{opacity:.35}
 .sw-refract{
   position:absolute;
   inset:0;
@@ -270,8 +312,9 @@ h2{
   width:48px;
   height:48px;
   border-radius:24px;
-  background:linear-gradient(180deg, #ffffff 0%, #eef0ff 100%);
-  box-shadow:0 3px 8px rgba(0,0,0,.22), inset 0 1px 2px #fff;
+  background:linear-gradient(180deg, rgba(255,255,255,.62) 0%, rgba(238,240,255,.38) 100%);
+  box-shadow:0 3px 8px rgba(0,0,0,.22), inset 0 1px 2px rgba(255,255,255,.9), inset 0 -2px 6px rgba(0,0,0,.08);
+  backdrop-filter:blur(2px);
   transition:transform .44s cubic-bezier(.34,1.56,.64,1);
 }
 .sw.on .sw-thumb{
@@ -605,7 +648,10 @@ footer code{
 
 <header>
   <div class="badge"><span class="badge-dot"></span> SVG feDisplacementMap · WebGL GLSL · 100% Cross-Browser</div>
-  <h1>Building Glass for the Web</h1>
+  <div class="title-stage" id="titleStage">
+    <div class="title-bg"></div>
+    <h1>Building Glass for the Web</h1>
+  </div>
   <p class="sub">Direct live DOM refraction using 8-bit displacement maps and a 17-primitive SVG filter pipeline. Text stays selectable, motion holds 60fps on mobile, and WebGL powers canvas &amp; video textures.</p>
 </header>
 
@@ -620,7 +666,7 @@ footer code{
     <div class="hero-typography" style="bottom:22%;left:12%;font-size:1.15rem;color:rgba(255,255,255,.7)">feDisplacementMap</div>
     <div class="hero-typography" style="top:16%;right:24%;font-size:1.05rem;color:rgba(255,255,255,.65)">objectBoundingBox</div>
   </div>
-  <p class="hint" style="margin-top:.6rem">✦ Drifts automatically — hover and move your pointer over the stage to drag the lens directly.</p>
+  <p class="hint" style="margin-top:.6rem">✦ Move your pointer across the title — the capsule bends the letterforms. The stage below drifts on its own; hover to grab the lens.</p>
 </section>
 
 <!-- COMPONENT FAMILY -->
@@ -640,6 +686,7 @@ footer code{
         <div class="vivid-bg"></div>
         <div class="vivid-grid"></div>
         <div class="sw" id="sw" role="switch" aria-checked="false" tabindex="0">
+          <div class="sw-labels"><span class="off">OFF</span><span class="on">ON</span></div>
           <div class="sw-refract"></div>
           <div class="sw-overlay"></div>
           <div class="sw-thumb"></div>
@@ -806,6 +853,44 @@ function tween(from, to, dur, onStep, onDone) {
     else if (onDone) onDone();
   })(t0);
 }
+
+/* ── 0. HERO TITLE LENS (signature: bends the actual letterforms) ── */
+(function initTitleLens() {
+  const stage = document.getElementById('titleStage');
+  if (!stage) return;
+  const LW = 280, LH = 150, LR = 75;
+
+  const g = createGlass(stage, {
+    lens: { x: 60, y: 24, w: LW, h: LH, r: LR },
+    scale: 20, depth: 127, curvature: .72, curvaturePow: 2.0,
+    glowSide: 42, glowTop: 26
+  });
+
+  let t0 = performance.now(), hover = false;
+  stage.addEventListener('mouseenter', () => { hover = true; });
+  stage.addEventListener('mouseleave', () => { hover = false; });
+  stage.addEventListener('mousemove', e => {
+    const r = stage.getBoundingClientRect();
+    g.setLens({
+      x: e.clientX - r.left - LW / 2,
+      y: e.clientY - r.top - LH / 2,
+      w: LW, h: LH, r: LR
+    });
+  });
+
+  (function drift(t) {
+    if (!hover) {
+      const r = stage.getBoundingClientRect();
+      const k = (t - t0) / 1000;
+      g.setLens({
+        x: r.width * .5 + Math.cos(k * .5) * (r.width * .27) - LW / 2,
+        y: r.height * .5 + Math.sin(k * .8) * (r.height * .16) - LH / 2,
+        w: LW, h: LH, r: LR
+      });
+    }
+    requestAnimationFrame(drift);
+  })(t0);
+})();
 
 /* ── 1. HERO SECTION ── */
 (function initHero() {

@@ -172,13 +172,13 @@ function buildFilter(defs, o) {
   floodBg.setAttribute('flood-opacity', '1');
   floodBg.setAttribute('result', 'mapBg');
 
-  /* 2. Displacement map image (objectBoundingBox fractions → positions it) */
+  /* 2. Displacement map image (pixel rect — userSpaceOnUse) */
   const img = svgEl('feImage');
   img.setAttribute('href', mapHref);
-  img.setAttribute('x', L.x);
-  img.setAttribute('y', L.y);
-  img.setAttribute('width', L.w);
-  img.setAttribute('height', L.h);
+  img.setAttribute('x', px.x);
+  img.setAttribute('y', px.y);
+  img.setAttribute('width', px.w);
+  img.setAttribute('height', px.h);
   img.setAttribute('preserveAspectRatio', 'none');
   img.setAttribute('result', 'rawMap');
 
@@ -189,10 +189,10 @@ function buildFilter(defs, o) {
   compMap.setAttribute('operator', 'over');
   compMap.setAttribute('result', 'map');
 
-  /* 4. Gaussian blur of source content (tiny fraction of element size) */
+  /* 4. Gaussian blur of source content (pixels — userSpaceOnUse) */
   const blur = svgEl('feGaussianBlur');
   blur.setAttribute('in', 'SourceGraphic');
-  blur.setAttribute('stdDeviation', (blurPx / elW) + ' ' + (blurPx / elH));
+  blur.setAttribute('stdDeviation', blurPx + ' ' + blurPx);
   blur.setAttribute('result', 'blurred');
 
   /* 5–10. Chromatic aberration: 3 displacement passes at ±4% scale */
