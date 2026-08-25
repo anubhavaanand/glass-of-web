@@ -1,3 +1,8 @@
+/**
+ * Aave Glass Web Engine — Optical Refraction for Live HTML Content
+ * Based on Aave Labs "Building Glass for the Web" architecture.
+ */
+
 class GlassDisplacementEngine {
   constructor() {
     this.cache = new Map();
@@ -102,7 +107,7 @@ class GlassDisplacementEngine {
 const glassEngine = new GlassDisplacementEngine();
 
 document.addEventListener('DOMContentLoaded', () => {
-  // 1. Hero Floating Lens Cursor Tracking
+  // 1. Hero Lens
   const heroStage = document.getElementById('heroStage');
   const heroLens = document.getElementById('heroLens');
   const refractedHeroLayer = document.getElementById('refractedHeroLayer');
@@ -134,14 +139,14 @@ document.addEventListener('DOMContentLoaded', () => {
     heroStage.addEventListener('touchmove', onMove, { passive: true });
   }
 
-  // 2. Switch Component
+  // 2. Switch
   const aaveSwitch = document.getElementById('aaveSwitch');
   if (aaveSwitch) {
     glassEngine.updateFilter('switch-filter', 'feImg-switch', 52, 52, 26, 32);
     aaveSwitch.addEventListener('click', () => aaveSwitch.classList.toggle('active'));
   }
 
-  // 3. Slider Component
+  // 3. Slider
   const slider = document.getElementById('sliderContainer');
   const fillBar = document.getElementById('sliderFillBar');
   const glassThumb = document.getElementById('sliderGlassThumb');
@@ -164,7 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
     window.addEventListener('mouseup', () => { dragging = false; });
   }
 
-  // 4. Segmented Toggle Group
+  // 4. Toggle Group
   const options = document.querySelectorAll('.toggle-option');
   const pill = document.getElementById('togglePill');
   const dupOptions = document.getElementById('duplicateOptions');
