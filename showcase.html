@@ -1037,11 +1037,18 @@ function tween(from, to, dur, onStep, onDone) {
   const container = document.getElementById('dynContainer');
   const ctx = src.getContext('2d');
   const W = 400, H = 225;
+
+  function secureRandom() {
+    const array = new Uint32Array(1);
+    window.crypto.getRandomValues(array);
+    return array[0] / (0xffffffff + 1);
+  }
+
   const particles = Array.from({ length: 30 }, () => ({
-    x: Math.random() * W, y: Math.random() * H,
-    vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5,
-    r: 10 + Math.random() * 25,
-    c: ['#ff7675', '#74b9ff', '#fd79a8', '#00cec9', '#a29bfe'][Math.floor(Math.random() * 5)]
+    x: secureRandom() * W, y: secureRandom() * H,
+    vx: (secureRandom() - 0.5) * 1.5, vy: (secureRandom() - 0.5) * 1.5,
+    r: 10 + secureRandom() * 25,
+    c: ['#ff7675', '#74b9ff', '#fd79a8', '#00cec9', '#a29bfe'][Math.floor(secureRandom() * 5)]
   }));
 
   function anim(t) {
