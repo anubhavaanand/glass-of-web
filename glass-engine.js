@@ -71,8 +71,10 @@ class GlassDisplacementEngine {
         for (const q of quadrants) {
           if (q.px >= 0 && q.px < w && q.py >= 0 && q.py < h) {
             const idx = (q.py * w + q.px) * 4;
-            data[idx]     = Math.min(255, Math.max(0, Math.round(neutral + q.dx)));
-            data[idx + 1] = Math.min(255, Math.max(0, Math.round(neutral + q.dy)));
+            const rVal = neutral + q.dx;
+            const gVal = neutral + q.dy;
+            data[idx]     = rVal <= 0 ? 0 : rVal >= 255 ? 255 : (rVal + 0.5) | 0;
+            data[idx + 1] = gVal <= 0 ? 0 : gVal >= 255 ? 255 : (gVal + 0.5) | 0;
             data[idx + 2] = neutral;
             data[idx + 3] = 255;
           }
