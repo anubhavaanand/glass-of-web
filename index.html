@@ -3,94 +3,393 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Aave Glass Web Specification</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Building Glass for the Web — Aave</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-  <!-- Hidden Global SVG Filters for Cross-Browser Optical Refraction -->
+  <!-- Hidden Global SVG Filters for Hardware-Accelerated Optical Refraction -->
   <svg class="svg-filters-root" aria-hidden="true">
     <defs>
-      <filter id="hero-filter" primitiveUnits="userSpaceOnUse" filterUnits="userSpaceOnUse" x="0" y="0">
-        <feImage id="feImg-hero" href="" result="DISPLACEMENT_MAP" />
-        <feDisplacementMap in="SourceGraphic" in2="DISPLACEMENT_MAP" scale="42" xChannelSelector="R" yChannelSelector="G" />
+      <!-- Hero Lens Filter -->
+      <filter id="hero-lens-filter" primitiveUnits="userSpaceOnUse" filterUnits="userSpaceOnUse" x="0" y="0">
+        <feImage id="feImg-hero" href="" result="MAP" />
+        <feDisplacementMap in="SourceGraphic" in2="MAP" scale="35" xChannelSelector="R" yChannelSelector="G" />
       </filter>
-      <filter id="switch-filter" primitiveUnits="userSpaceOnUse" filterUnits="userSpaceOnUse" x="0" y="0">
-        <feImage id="feImg-switch" href="" result="DISPLACEMENT_MAP" />
-        <feDisplacementMap in="SourceGraphic" in2="DISPLACEMENT_MAP" scale="32" xChannelSelector="R" yChannelSelector="G" />
+
+      <!-- Switch Filter -->
+      <filter id="switch-lens-filter" primitiveUnits="userSpaceOnUse" filterUnits="userSpaceOnUse" x="0" y="0">
+        <feImage id="feImg-switch" href="" result="MAP" />
+        <feDisplacementMap in="SourceGraphic" in2="MAP" scale="28" xChannelSelector="R" yChannelSelector="G" />
       </filter>
-      <filter id="slider-filter" primitiveUnits="userSpaceOnUse" filterUnits="userSpaceOnUse" x="0" y="0">
-        <feImage id="feImg-slider" href="" result="DISPLACEMENT_MAP" />
-        <feDisplacementMap in="SourceGraphic" in2="DISPLACEMENT_MAP" scale="30" xChannelSelector="R" yChannelSelector="G" />
+
+      <!-- Slider Filter -->
+      <filter id="slider-lens-filter" primitiveUnits="userSpaceOnUse" filterUnits="userSpaceOnUse" x="0" y="0">
+        <feImage id="feImg-slider" href="" result="MAP" />
+        <feDisplacementMap in="SourceGraphic" in2="MAP" scale="24" xChannelSelector="R" yChannelSelector="G" />
       </filter>
-      <filter id="toggle-filter" primitiveUnits="userSpaceOnUse" filterUnits="userSpaceOnUse" x="0" y="0">
-        <feImage id="feImg-toggle" href="" result="DISPLACEMENT_MAP" />
-        <feDisplacementMap in="SourceGraphic" in2="DISPLACEMENT_MAP" scale="28" xChannelSelector="R" yChannelSelector="G" />
+
+      <!-- Toggle Group Filter -->
+      <filter id="toggle-lens-filter" primitiveUnits="userSpaceOnUse" filterUnits="userSpaceOnUse" x="0" y="0">
+        <feImage id="feImg-toggle" href="" result="MAP" />
+        <feDisplacementMap in="SourceGraphic" in2="MAP" scale="26" xChannelSelector="R" yChannelSelector="G" />
+      </filter>
+
+      <!-- Interactive Inspector Studio Filter -->
+      <filter id="inspector-lens-filter" primitiveUnits="userSpaceOnUse" filterUnits="userSpaceOnUse" x="0" y="0">
+        <feImage id="feImg-inspector" href="" result="MAP" />
+        <feDisplacementMap in="SourceGraphic" in2="MAP" scale="35" xChannelSelector="R" yChannelSelector="G" />
       </filter>
     </defs>
   </svg>
 
-  <div class="app-layout">
-    <!-- Hero Refraction Stage -->
-    <div class="hero-stage" id="heroStage">
-      <div class="hero-content-base">
-        <h1 class="hero-headline">Building Glass<br>for the Web</h1>
-        <p class="hero-subline">Real optical refraction through live rendered HTML</p>
-      </div>
+  <div class="article-wrapper">
+    <!-- Header / Nav -->
+    <nav class="top-nav">
+      <a href="#" class="back-link">← Back</a>
+      <div class="nav-brand">Aave Labs · Design</div>
+      <a href="https://aave.com/design/building-glass-for-the-web" target="_blank" rel="noopener noreferrer" class="share-btn">Original ↗</a>
+    </nav>
 
-      <div class="hero-lens-capsule" id="heroLens">
-        <div class="lens-refraction-container">
-          <div class="hero-content-refracted" id="refractedHeroLayer">
-            <h1 class="hero-headline text-refracted">Building Glass<br>for the Web</h1>
-            <p class="hero-subline text-refracted">Real optical refraction through live rendered HTML</p>
-          </div>
+    <!-- Main Editorial Article -->
+    <main class="article-body">
+      <header class="article-header">
+        <h1 class="main-title">Building Glass for the Web</h1>
+        <p class="lead-text">
+          In June last year Apple announced Liquid Glass at WWDC, a fresh design language built around the physics of light bending through curved glass. It was a bold move that immediately captured the imagination of designers and developers alike.
+        </p>
+        <p class="lead-text">
+          We felt inspired to bring that same magic to our apps, starting by bringing our own version of the effect to our Aave App for iOS and Android, which we call <strong>Aave Glass</strong>. This quickly became a defining part of the Aave App experience, making our interfaces feel more alive and tactile. We wanted to bring this same feeling to the experiences we build on the web.
+        </p>
+      </header>
+
+      <!-- SECTION 1: THE CHALLENGE WITH THE WEB -->
+      <section class="article-section">
+        <h2 class="section-heading">The challenge with the web</h2>
+        <p class="paragraph">
+          In the months that followed WWDC, we saw a wave of interest from others who also felt inspired to recreate the effect for the web. Most of the demos and experiments that surfaced only ran in Chromium browsers. They leaned on either an SVG backdrop-filter approach or the experimental HTML-in-Canvas API hidden behind a flag, and neither holds up in other browsers.
+        </p>
+        <p class="paragraph">
+          Before building our own, we worked through the approaches already going around:
+        </p>
+
+        <div class="table-container">
+          <table class="compatibility-table">
+            <thead>
+              <tr>
+                <th>Approach</th>
+                <th>Chromium</th>
+                <th>Safari</th>
+                <th>Firefox</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="approach-name">SVG backdrop-filter</td>
+                <td class="supported">✓</td>
+                <td class="unsupported">✕</td>
+                <td class="unsupported">✕</td>
+              </tr>
+              <tr>
+                <td class="approach-name">HTML-in-Canvas API</td>
+                <td class="partial">Behind flag</td>
+                <td class="unsupported">✕</td>
+                <td class="unsupported">✕</td>
+              </tr>
+              <tr class="highlight-row">
+                <td class="approach-name"><strong>Our technique</strong></td>
+                <td class="supported">✓</td>
+                <td class="supported">✓</td>
+                <td class="supported">✓</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-        <div class="lens-specular-rim"></div>
-      </div>
-    </div>
 
-    <!-- Components Grid -->
-    <div class="components-grid">
-      <!-- Switch -->
-      <div class="aave-switch" id="aaveSwitch">
-        <div class="switch-track-bg"><span>OFF</span><span>ON</span></div>
-        <div class="switch-glass-thumb" id="switchThumb">
-          <div class="thumb-refraction-wrap">
-            <div class="switch-track-refracted"><span>OFF</span><span>ON</span></div>
-          </div>
-          <div class="thumb-specular-rim"></div>
-        </div>
-      </div>
+        <p class="paragraph">
+          Our technique runs in every modern browser, on desktop and on mobile, with no flags to turn on and no fallbacks to maintain. It just works.
+        </p>
+      </section>
 
-      <!-- Slider -->
-      <div class="aave-slider-container" id="sliderContainer">
-        <div class="slider-groove"><div class="slider-fill-bar" id="sliderFillBar"></div></div>
-        <div class="slider-glass-thumb" id="sliderGlassThumb">
-          <div class="slider-thumb-refraction">
-            <div class="slider-fill-duplicate" id="sliderFillDuplicate"></div>
-          </div>
-          <div class="thumb-specular-rim"></div>
-          <span class="slider-readout" id="sliderReadout">65%</span>
-        </div>
-      </div>
+      <!-- SECTION 2: A FAMILY OF COMPONENTS -->
+      <section class="article-section">
+        <h2 class="section-heading">A family of components</h2>
+        <p class="paragraph">
+          Building a cross-browser effect that works on any content was only the first step. We wanted to make sure it could be used in real interfaces, and that it could bring the same sense of delight to our web experiences as it does in our mobile apps.
+        </p>
+        <p class="paragraph">
+          So we built a family of components that use the glass as a core part of their experience.
+        </p>
 
-      <!-- Toggle Group -->
-      <div class="aave-toggle-group" id="toggleGroup">
-        <button class="toggle-option active">Hubs</button>
-        <button class="toggle-option">Spokes</button>
-        <button class="toggle-option">Reserves</button>
-        <button class="toggle-option">Chains</button>
-        <div class="toggle-glass-pill" id="togglePill">
-          <div class="toggle-pill-refraction">
-            <div class="toggle-options-refracted" id="duplicateOptions">
-              <span>Hubs</span><span>Spokes</span><span>Reserves</span><span>Chains</span>
+        <!-- 1. THE SWITCH -->
+        <div class="demo-block">
+          <div class="demo-canvas-wrap">
+            <div class="aave-switch" id="aaveSwitch" role="switch" aria-checked="false" tabindex="0">
+              <div class="switch-track-bg">
+                <span>OFF</span>
+                <span>ON</span>
+              </div>
+              <div class="switch-glass-thumb" id="switchThumb">
+                <div class="thumb-refraction-container">
+                  <div class="switch-track-refracted">
+                    <span>OFF</span>
+                    <span>ON</span>
+                  </div>
+                </div>
+                <div class="thumb-specular-rim"></div>
+              </div>
             </div>
           </div>
-          <div class="pill-specular-rim"></div>
+          <div class="demo-caption">
+            Even with a small component like this switch, the glass effect adds a sense of depth and tactility.
+          </div>
         </div>
-      </div>
-    </div>
+
+        <p class="paragraph">
+          Mobile apps rely on switches for binary choices, and glass suits them well. The thumb of the switch is a small lens that creates a moving highlight as you toggle.
+        </p>
+        <p class="paragraph">
+          The content renders normally and stays visible everywhere outside the lens; the whole ideology behind our technique is that it refracts live HTML, the real rendered content.
+        </p>
+        <p class="paragraph">
+          To achieve the glass effect on the handle we give our glass component a copy of the track's fill that sits on its own layer and gets bent by the glass. The fill registers as a moving highlight that gives the switch a sense of depth and tactility.
+        </p>
+
+        <div class="code-card">
+          <pre><code>&lt;Glass
+  lens={{ lensW: 90, lensH: 60, borderRadius: 30 }}
+  x={progress} // lens acts as the thumb (0–1 across the track)
+&gt;
+  &lt;SwitchTrack /&gt;
+&lt;/Glass&gt;</code></pre>
+        </div>
+
+        <!-- 2. THE SLIDER -->
+        <div class="demo-block">
+          <div class="demo-canvas-wrap">
+            <div class="aave-slider-container" id="sliderContainer">
+              <div class="slider-track-groove">
+                <div class="slider-fill-bar" id="sliderFillBar"></div>
+              </div>
+              <div class="slider-glass-thumb" id="sliderGlassThumb">
+                <div class="slider-thumb-refraction">
+                  <div class="slider-fill-duplicate" id="sliderFillDuplicate"></div>
+                </div>
+                <div class="thumb-specular-rim"></div>
+                <span class="slider-readout" id="sliderReadout">65%</span>
+              </div>
+            </div>
+          </div>
+          <div class="demo-caption">
+            Native &lt;input type='range' /&gt; elements are back-synced with our custom component.
+          </div>
+        </div>
+
+        <p class="paragraph">
+          A slider is also a natural home for the effect. The glass travels along the track, refracting the fill beneath it as it goes, and the value you're setting stays visible right through the glass.
+        </p>
+        <p class="paragraph">
+          Dragging is cheap to animate. As the handle moves, only the filter's region shifts along the track while the displacement map stays the same, so the motion holds a steady frame rate even on a phone. The map is regenerated only when the glass changes shape, never when it simply changes place.
+        </p>
+        <p class="paragraph">
+          The slider leans on a gentler bend than the switch, a fraction of the refraction strength, since the fill underneath has to stay readable as a value rather than just register as a moving highlight.
+        </p>
+
+        <div class="code-card">
+          <pre><code>// Same refractionTarget trick, a softer bend, the handle drives the lens.
+&lt;Glass
+  lens={{ lensW: 90, lensH: 60, borderRadius: 30 }}
+  x={handlePosition}
+  refractionTarget={&lt;TrackFill progress={progress} /&gt;}
+&gt;
+  &lt;SliderTrack /&gt;
+&lt;/Glass&gt;</code></pre>
+        </div>
+
+        <!-- 3. THE TOGGLE GROUP (HUBS, SPOKES, RESERVES, ASSETS, CHAINS) -->
+        <div class="demo-block">
+          <div class="demo-canvas-wrap">
+            <div class="aave-toggle-group" id="toggleGroup">
+              <button class="toggle-option active" data-index="0">Hubs</button>
+              <button class="toggle-option" data-index="1">Spokes</button>
+              <button class="toggle-option" data-index="2">Reserves</button>
+              <button class="toggle-option" data-index="3">Assets</button>
+              <button class="toggle-option" data-index="4">Chains</button>
+
+              <!-- The Gliding Spring Glass Pill -->
+              <div class="toggle-glass-pill" id="togglePill">
+                <div class="toggle-pill-refraction">
+                  <div class="toggle-options-duplicate" id="duplicateOptions">
+                    <span>Hubs</span><span>Spokes</span><span>Reserves</span><span>Assets</span><span>Chains</span>
+                  </div>
+                </div>
+                <div class="pill-specular-rim"></div>
+              </div>
+            </div>
+          </div>
+          <div class="demo-caption">
+            The glass effect helps visually highlight the selected option.
+          </div>
+        </div>
+
+        <p class="paragraph">
+          The toggle group uses the glass itself as the selection indicator, gliding between options and easing towards the one you pick.
+        </p>
+        <p class="paragraph">
+          As with the switch, the glass refracts a highlighted pill rather than the buttons behind it, so the selected option stays legible whichever label sits underneath. It eases between options with a spring rather than a straight slide, so the selection settles into place instead of snapping.
+        </p>
+
+        <div class="code-card">
+          <pre><code>// The glass is the selection indicator. It bends a highlighted copy of
+// the options and springs to the one you pick.
+&lt;Glass
+  lens={selectionLens}
+  x={selectedOptionPosition}
+  refractionTarget={&lt;HighlightedOptions /&gt;}
+&gt;
+  &lt;ToggleGroup options={options} /&gt;
+&lt;/Glass&gt;</code></pre>
+        </div>
+      </section>
+
+      <!-- SECTION 3: HOW IT WORKS (THE EXACT ARTICLE INTERACTIVE INSPECTOR) -->
+      <section class="article-section">
+        <h2 class="section-heading">How it works</h2>
+        <p class="paragraph">
+          Our glass works directly on whatever you put inside it. The content renders normally, exactly as the browser would display it, and the glass bends those very pixels to recreate what light does through curved glass.
+        </p>
+        <p class="paragraph">
+          Because it works on the real rendered content rather than a copy of it, the glass can go on anything made of live DOM: text, images, cards, buttons, whole layouts.
+        </p>
+        <p class="paragraph">
+          The effect rests on a single SVG filter primitive, <code>feDisplacementMap</code>. It takes two inputs, the painted content and a map we generate, and for each pixel of the content it reads the matching pixel of the map and uses that color to decide which way to push. Nothing is sampled from underneath the glass. The content's own pixels are the ones moving, which is why text under the lens stays selectable and links stay clickable.
+        </p>
+        <p class="paragraph">
+          The map is a small PNG we build on the fly from the glass's shape and size. Its red and green channels say how far each pixel bends horizontally and vertically, and everywhere outside the lens it sits at a neutral value that leaves those pixels alone, so only the region under the glass moves.
+        </p>
+
+        <!-- THE DUAL-PANE DISPLACEMENT MAP INSPECTOR -->
+        <div class="inspector-container">
+          <div class="inspector-header">
+            <span>Generated displacement map at the lens position</span>
+            <span class="inspector-sub">On the left is the refracted result, on the right the map that drives it.</span>
+          </div>
+
+          <div class="inspector-visuals">
+            <!-- Left: Refracted Result -->
+            <div class="inspector-preview-pane" id="inspectorStage">
+              <div class="inspector-content-bg">
+                <div class="numbers-stream">01234567890123456789</div>
+                <div class="numbers-stream cyan">01234567890123456789</div>
+                <div class="numbers-stream purple">01234567890123456789</div>
+                <div class="numbers-stream">01234567890123456789</div>
+              </div>
+
+              <!-- Refracting Lens -->
+              <div class="inspector-lens" id="inspectorLens">
+                <div class="lens-refraction-container">
+                  <div class="inspector-content-refracted" id="inspectorRefractedContent">
+                    <div class="numbers-stream">01234567890123456789</div>
+                    <div class="numbers-stream cyan">01234567890123456789</div>
+                    <div class="numbers-stream purple">01234567890123456789</div>
+                    <div class="numbers-stream">01234567890123456789</div>
+                  </div>
+                </div>
+                <div class="lens-specular-rim" id="inspectorSpecularRim"></div>
+              </div>
+            </div>
+
+            <!-- Right: Generated Displacement Map Canvas Display -->
+            <div class="inspector-map-pane">
+              <div class="canvas-box">
+                <canvas id="displacementMapCanvas"></canvas>
+              </div>
+              <div class="map-legend">
+                <span>R: Horizontal Normals</span>
+                <span>G: Vertical Normals</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Parameter Tuning Sliders (Exactly matching Aave's UI) -->
+          <div class="inspector-sliders-grid">
+            <div class="slider-control">
+              <label>Width <span id="vWidth">180px</span></label>
+              <input type="range" id="sWidth" min="80" max="280" value="180" />
+            </div>
+
+            <div class="slider-control">
+              <label>Height <span id="vHeight">80px</span></label>
+              <input type="range" id="sHeight" min="40" max="160" value="80" />
+            </div>
+
+            <div class="slider-control">
+              <label>BorderRadius <span id="vRadius">40px</span></label>
+              <input type="range" id="sRadius" min="0" max="80" value="40" />
+            </div>
+
+            <div class="slider-control">
+              <label>Scale <span id="vScale">35</span></label>
+              <input type="range" id="sScale" min="0" max="70" value="35" />
+            </div>
+
+            <div class="slider-control">
+              <label>Depth <span id="vDepth">1.0</span></label>
+              <input type="range" id="sDepth" min="0.1" max="2.0" step="0.1" value="1.0" />
+            </div>
+
+            <div class="slider-control">
+              <label>Curvature <span id="vCurvature">1.2</span></label>
+              <input type="range" id="sCurvature" min="0.5" max="3.0" step="0.1" value="1.2" />
+            </div>
+
+            <div class="slider-control">
+              <label>Chroma <span id="vChroma">0.8</span></label>
+              <input type="range" id="sChroma" min="0" max="2" step="0.1" value="0.8" />
+            </div>
+
+            <div class="slider-control">
+              <label>Edge Highlight <span id="vHighlight">0.6</span></label>
+              <input type="range" id="sHighlight" min="0" max="1" step="0.05" value="0.6" />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- SECTION 4: MAKING IT WORK EVERYWHERE -->
+      <section class="article-section">
+        <h2 class="section-heading">Making it work everywhere</h2>
+        <p class="paragraph">
+          This is where most of the work went, and where the Chromium-only demos fall down. Getting the same glass to render correctly in Safari, on desktop and on iOS, meant working through a string of quirks that surface nowhere else.
+        </p>
+
+        <h3 class="subsection-heading">Refreshing the filter cleanly</h3>
+        <p class="paragraph">
+          Safari caches SVG filter output by its filter ID. When we change the displacement map but keep the same ID, Safari keeps serving the old output and the glass freezes mid-motion. To fix this, we give the filter a fresh ID on every update, forcing Safari to read the new map.
+        </p>
+
+        <h3 class="subsection-heading">Computing a quarter of the map</h3>
+        <p class="paragraph">
+          We regenerate the displacement map on every frame of a squish or resize, so computing it has to be cheap. Since the displacement map is essentially a rounded rectangle, it has four-fold symmetry. We compute only the top-left quadrant and write each pixel into all four, negating the X displacement across the vertical axis and the Y displacement across the horizontal one. That cuts the per-pixel work to a quarter, which is what keeps map generation inside the frame budget.
+        </p>
+
+        <h3 class="subsection-heading">Watching our footprint on Safari</h3>
+        <p class="paragraph">
+          Safari has a ceiling on the size of the source graphic a filter can process, which is the input itself for the SVG filter. Past that size, Safari breaks the effect into mismatched blocks or drops it entirely, both on desktop and mobile. This limit varies between browser versions and platforms, so we stay conservative with the size and complexity of the DOM we refract.
+        </p>
+      </section>
+
+      <!-- FOOTER -->
+      <footer class="article-footer">
+        <div class="footer-meta">
+          <span>Aave Glass Web Engine · Built for cross-browser production</span>
+        </div>
+      </footer>
+    </main>
   </div>
 
-  <script src="glass.js"></script>
+  <script src="glass-engine.js"></script>
 </body>
 </html>
