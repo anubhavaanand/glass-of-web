@@ -5,6 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aave Glass — Building Glass for the Web</title>
 <meta name="description" content="Cross-browser Liquid Glass effect for the web — feDisplacementMap SVG filter & WebGL shader.">
+<script>
+window.__errors = [];
+window.onerror = function(msg, url, line, col, error) {
+  window.__errors.push({msg: String(msg), url: String(url), line, col, stack: error ? error.stack : null});
+};
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -81,6 +87,30 @@ h1{
   line-height:1.08;
   margin-bottom:.9rem;
   color:#110e1b;
+}
+/* ── HERO TITLE LENS STAGE ── */
+.title-stage{
+  position:relative;
+  padding:1.7rem 2.2rem 1.55rem;
+  margin:-.4rem -2.2rem 0;
+  border-radius:30px;
+  background:#f7f5fd;
+  cursor:default;
+}
+.title-bg{
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  background:
+    radial-gradient(430px 210px at 16% 28%, rgba(108,92,231,.20), transparent 64%),
+    radial-gradient(390px 230px at 84% 22%, rgba(255,118,117,.16), transparent 60%),
+    radial-gradient(470px 250px at 55% 95%, rgba(0,206,201,.17), transparent 64%),
+    radial-gradient(300px 180px at 70% 60%, rgba(9,132,227,.12), transparent 60%);
+  pointer-events:none;
+}
+.title-stage h1{
+  position:relative;
+  margin-bottom:0;
 }
 .sub{
   color:var(--fg-2);
@@ -242,6 +272,24 @@ h2{
   -webkit-tap-highlight-color:transparent;
   z-index:2;
 }
+.sw-labels{
+  position:absolute;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 20px;
+  font-size:.68rem;
+  font-weight:800;
+  letter-spacing:.14em;
+  color:rgba(255,255,255,.95);
+  text-shadow:0 1px 4px rgba(0,0,0,.25);
+  pointer-events:none;
+}
+.sw-labels .off{opacity:.9}
+.sw-labels .on{opacity:.35;transition:opacity .3s}
+.sw.on .sw-labels .on{opacity:.9}
+.sw.on .sw-labels .off{opacity:.35}
 .sw-refract{
   position:absolute;
   inset:0;
@@ -270,8 +318,9 @@ h2{
   width:48px;
   height:48px;
   border-radius:24px;
-  background:linear-gradient(180deg, #ffffff 0%, #eef0ff 100%);
-  box-shadow:0 3px 8px rgba(0,0,0,.22), inset 0 1px 2px #fff;
+  background:linear-gradient(180deg, rgba(255,255,255,.62) 0%, rgba(238,240,255,.38) 100%);
+  box-shadow:0 3px 8px rgba(0,0,0,.22), inset 0 1px 2px rgba(255,255,255,.9), inset 0 -2px 6px rgba(0,0,0,.08);
+  backdrop-filter:blur(2px);
   transition:transform .44s cubic-bezier(.34,1.56,.64,1);
 }
 .sw.on .sw-thumb{
@@ -605,7 +654,10 @@ footer code{
 
 <header>
   <div class="badge"><span class="badge-dot"></span> SVG feDisplacementMap · WebGL GLSL · 100% Cross-Browser</div>
-  <h1>Building Glass for the Web</h1>
+  <div class="title-stage" id="titleStage">
+    <div class="title-bg"></div>
+    <h1>Building Glass for the Web</h1>
+  </div>
   <p class="sub">Direct live DOM refraction using 8-bit displacement maps and a 17-primitive SVG filter pipeline. Text stays selectable, motion holds 60fps on mobile, and WebGL powers canvas &amp; video textures.</p>
 </header>
 
@@ -620,7 +672,7 @@ footer code{
     <div class="hero-typography" style="bottom:22%;left:12%;font-size:1.15rem;color:rgba(255,255,255,.7)">feDisplacementMap</div>
     <div class="hero-typography" style="top:16%;right:24%;font-size:1.05rem;color:rgba(255,255,255,.65)">objectBoundingBox</div>
   </div>
-  <p class="hint" style="margin-top:.6rem">✦ Drifts automatically — hover and move your pointer over the stage to drag the lens directly.</p>
+  <p class="hint" style="margin-top:.6rem">✦ Move your pointer across the title — the capsule bends the letterforms. The stage below drifts on its own; hover to grab the lens.</p>
 </section>
 
 <!-- COMPONENT FAMILY -->
@@ -640,6 +692,7 @@ footer code{
         <div class="vivid-bg"></div>
         <div class="vivid-grid"></div>
         <div class="sw" id="sw" role="switch" aria-checked="false" tabindex="0">
+          <div class="sw-labels"><span class="off">OFF</span><span class="on">ON</span></div>
           <div class="sw-refract"></div>
           <div class="sw-overlay"></div>
           <div class="sw-thumb"></div>
@@ -726,6 +779,32 @@ footer code{
   </div>
 </section>
 
+<section>
+  <div class="sec-head">
+    <h2>Multi-Lens Surfaces</h2>
+    <span class="hint">WebGL video + canvas with independent glass controls</span>
+  </div>
+  <div class="card" style="grid-column: 1 / -1;">
+      <h3>Interactive Video Player (Multi-Lens WebGL)</h3>
+      <p>A live &lt;video&gt; texture rendered via WebGL with multi-lens control buttons (Play/Pause, Skip Back, Skip Forward, Scrub Bar), exactly per Aave Labs' article.</p>
+      <div class="stage-wrap" style="padding:0; background:#000;">
+        <div class="video-container" id="videoContainer" style="position:relative; width:100%; height:360px; overflow:hidden; border-radius:20px;">
+          <video id="vidSource" src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4" crossorigin="anonymous" playsinline muted loop style="display:none;"></video>
+          <canvas id="vidGlass" width="800" height="450" style="width:100%; height:100%; display:block;"></canvas>
+          <div class="video-controls-overlay" style="position:absolute; bottom:16px; left:16px; right:16px; display:flex; align-items:center; gap:12px; pointer-events:auto; z-index:10; background:rgba(0,0,0,0.5); padding:10px 16px; border-radius:14px; backdrop-filter:blur(8px);">
+            <button id="vidPlayBtn" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:6px 14px; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.9rem;">Play</button>
+            <button id="vidBackBtn" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:0.9rem;">↺ 10s</button>
+            <button id="vidFwdBtn" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:0.9rem;">10s ↻</button>
+            <div id="vidScrubTrack" style="flex:1; height:8px; background:rgba(255,255,255,0.2); border-radius:4px; position:relative; cursor:pointer;">
+              <div id="vidScrubFill" style="width:0%; height:100%; background:var(--primary); border-radius:4px;"></div>
+            </div>
+            <span id="vidTime" style="color:#fff; font-size:0.85rem; font-family:var(--font-mono); min-width:45px;">0:00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+</section>
+
 <!-- PLAYGROUND — 12 KNOBS -->
 <section>
   <div class="sec-head">
@@ -776,33 +855,6 @@ footer code{
   </div>
 </section>
 
-<!-- VIDEO PLAYER WEBGL MULTI-LENS -->
-<section>
-  <div class="sec-head">
-    <h2>Multi-Lens Surfaces</h2>
-    <span class="hint">WebGL video + canvas with independent glass controls</span>
-  </div>
-  <div class="card" style="grid-column: 1 / -1;">
-    <h3>Interactive Video Player (Multi-Lens WebGL)</h3>
-    <p>A live <video> texture rendered via WebGL with multi-lens control buttons (Play/Pause, Skip Back, Skip Forward, Scrub Bar), exactly per Aave Labs' article.</p>
-    <div class="stage-wrap" style="padding:0; background:#000;">
-      <div class="video-container" id="videoContainer" style="position:relative; width:100%; height:360px; overflow:hidden; border-radius:20px;">
-        <video id="vidSource" src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4" crossorigin="anonymous" playsinline muted loop style="display:none;"></video>
-        <canvas id="vidGlass" width="800" height="450" style="width:100%; height:100%; display:block;"></canvas>
-        <div class="video-controls-overlay" style="position:absolute; bottom:16px; left:16px; right:16px; display:flex; align-items:center; gap:12px; pointer-events:auto; z-index:10; background:rgba(0,0,0,0.5); padding:10px 16px; border-radius:14px; backdrop-filter:blur(8px);">
-          <button id="vidPlayBtn" style="background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.3); color:#fff; padding:6px 14px; border-radius:8px; cursor:pointer; font-weight:600; font-size:0.9rem;">Play</button>
-          <button id="vidBackBtn" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:0.9rem;">↺ 10s</button>
-          <button id="vidFwdBtn" style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.2); color:#fff; padding:6px 10px; border-radius:8px; cursor:pointer; font-size:0.9rem;">10s ↻</button>
-          <div id="vidScrubTrack" style="flex:1; height:8px; background:rgba(255,255,255,0.2); border-radius:4px; position:relative; cursor:pointer;">
-            <div id="vidScrubFill" style="width:0%; height:100%; background:var(--primary); border-radius:4px;"></div>
-          </div>
-          <span id="vidTime" style="color:#fff; font-size:0.85rem; font-family:var(--font-mono); min-width:45px;">0:00</span>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
 <footer>
   Engine: <code>glass-engine.js</code> · 17-primitive SVG chain with SDF normals · userSpaceOnUse for cross-browser · WebGL GLSL fallback for non-DOM textures · Fresh filter IDs per update for Safari cache-busting.
 </footer>
@@ -811,496 +863,605 @@ footer code{
 
 <script src="glass-engine.js"></script>
 <script>
-const GE = window.GlassEngine;
-const { createGlass, generateMap, createGlassWebGL } = GE;
-
-/* Spring-like easeOutBack tween */
-function tween(from, to, dur, onStep, onDone) {
-  const t0 = performance.now();
-  const c1 = 1.70158, c3 = c1 + 1;
-  (function frame(t) {
-    const k = Math.min((t - t0) / dur, 1);
-    const u = k - 1;
-    const e = 1 + c3 * u * u * u + c1 * u * u;
-    onStep({
-      x: from.x + (to.x - from.x) * e,
-      y: from.y + (to.y - from.y) * e,
-      w: from.w + (to.w - from.w) * k,
-      h: from.h + (to.h - from.h) * k,
-      r: from.r
-    });
-    if (k < 1) requestAnimationFrame(frame);
-    else if (onDone) onDone();
-  })(t0);
-}
-
-/* ── 1. HERO SECTION ── */
-(function initHero() {
-  const stage = document.getElementById('heroStage');
-  
-  function setup() {
-    const driftLens = createGlass(stage, {
-      lens: { x: 0, y: 0, w: 200, h: 200, r: 100 },
-      scale: 15, depth: 127, curvature: 0.7, curvaturePow: 2.0, glowSide: 36, glowTop: 24
-    });
-
-    let t0 = performance.now();
-    let userHover = false;
-
-    stage.addEventListener('mouseenter', () => { userHover = true; });
-    stage.addEventListener('mouseleave', () => { userHover = false; });
-    stage.addEventListener('mousemove', e => {
-      const r = stage.getBoundingClientRect();
-      driftLens.setLens({ x: e.clientX - r.left - 100, y: e.clientY - r.top - 100, w: 200, h: 200, r: 100 });
-    });
-
-    (function driftLoop(t) {
-      if (!userHover) {
-        const sr = stage.getBoundingClientRect();
-        const k = (t - t0) / 1000;
-        const x = sr.width * 0.5 + Math.cos(k * 0.6) * (sr.width * 0.3) - 100;
-        const y = sr.height * 0.5 + Math.sin(k * 0.9) * (sr.height * 0.25) - 100;
-        driftLens.setLens({ x, y, w: 200, h: 200, r: 100 });
-      }
-      requestAnimationFrame(driftLoop);
-    })(t0);
-  }
-
-  setup();
-})();
-
-/* ── 2. SWITCH COMPONENT ── */
-(function initSwitch() {
-  const root = document.getElementById('sw');
-  let on = false, g;
-  
-  g = createGlass(root, {
-    lens: { x: 8, y: 8, w: 48, h: 48, r: 24 },
-    scale: 8, depth: 127, curvature: 0.8, curvaturePow: 2.3, glowSide: 54, glowTop: 21
-  });
-  g.__pos = { x: 8, y: 8, w: 48, h: 48, r: 24 };
-
-  root.addEventListener('click', () => {
-    on = !on;
-    root.classList.toggle('on', on);
-    root.setAttribute('aria-checked', on);
-    if (!g) return;
-    const target = { x: on ? 80 : 8, y: 8, w: 48, h: 48, r: 24 };
-    tween(g.__pos, target, 440, p => { g.setLens(p); g.__pos = p; });
-  });
-})();
-
-/* ── 3. SLIDER COMPONENT ── */
-(function initSlider() {
-  const root = document.getElementById('sl');
-  const handle = document.getElementById('slHandle');
-  const fill = document.getElementById('slFill');
-  const refract = document.getElementById('slRefract');
-  const val = document.getElementById('slVal');
-  const PAD = 16, HW = 36;
-  let TRAV = 320 - PAD * 2 - HW, p = 0.5, dragging = false, g;
-
-  function updateMetrics() {
-    TRAV = root.getBoundingClientRect().width - PAD * 2 - HW;
-  }
-
-  updateMetrics();
-  g = createGlass(root, {
-    lens: { x: PAD + p * TRAV, y: 12, w: HW, h: HW, r: HW / 2 },
-    scale: 4, depth: 120, curvature: 0.7, curvaturePow: 2.2, glowSide: 42, glowTop: 18
-  });
-  render();
-
-  function render() {
-    const x = PAD + p * TRAV;
-    handle.style.left = x + 'px';
-    fill.style.width = 'calc(' + (p * 100) + '% - ' + (HW / 2) + 'px)';
-    refract.style.width = 'calc(' + (p * 100) + '% - ' + (HW / 2) + 'px)';
-    val.textContent = Math.round(p * 100) + '%';
-    if (g) g.setLens({ x, y: 12, w: HW, h: HW, r: HW / 2 });
-  }
-
-  function setFromPointer(cx) {
-    const r = root.getBoundingClientRect();
-    p = Math.max(0, Math.min(1, (cx - r.left - PAD - HW / 2) / TRAV));
-    render();
-  }
-
-  root.addEventListener('mousedown', e => { dragging = true; setFromPointer(e.clientX); });
-  root.addEventListener('touchstart', e => { dragging = true; setFromPointer(e.touches[0].clientX); }, { passive: true });
-  window.addEventListener('mousemove', e => { if (dragging) setFromPointer(e.clientX); });
-  window.addEventListener('touchmove', e => { if (dragging) setFromPointer(e.touches[0].clientX); });
-  window.addEventListener('mouseup', () => { dragging = false; });
-  window.addEventListener('touchend', () => { dragging = false; });
-})();
-
-/* ── 4. TOGGLE GROUP ── */
-(function initToggleGroup() {
-  const root = document.getElementById('tg');
-  const items = [...root.querySelectorAll('.tg-item')];
-  const hl = document.getElementById('tgHl');
-  const refractPill = document.getElementById('tgRefractPill');
-  let g;
-
-  function getSlotRect(idx) {
-    const rr = root.getBoundingClientRect();
-    const ir = items[idx].getBoundingClientRect();
-    return { x: ir.left - rr.left, y: 8, w: ir.width, h: ir.height, r: 18 };
-  }
-
-  const initRect = getSlotRect(0);
-  hl.style.left = initRect.x + 'px';
-  hl.style.width = initRect.w + 'px';
-  refractPill.style.left = initRect.x + 'px';
-  refractPill.style.width = initRect.w + 'px';
-  g = createGlass(root, { lens: initRect, scale: 5, depth: 110, curvature: 0.8, curvaturePow: 2.3, glowSide: 32, glowTop: 16 });
-  g.__pos = initRect;
-
-  items.forEach((item, idx) => {
-    item.addEventListener('click', () => {
-      items.forEach(it => it.classList.remove('active'));
-      item.classList.add('active');
-      const targetRect = getSlotRect(idx);
-      hl.style.transition = 'left .42s cubic-bezier(.34,1.56,.64,1), width .42s cubic-bezier(.34,1.56,.64,1)';
-      hl.style.left = targetRect.x + 'px';
-      hl.style.width = targetRect.w + 'px';
-      refractPill.style.transition = 'left .42s cubic-bezier(.34,1.56,.64,1), width .42s cubic-bezier(.34,1.56,.64,1)';
-      refractPill.style.left = targetRect.x + 'px';
-      refractPill.style.width = targetRect.w + 'px';
-      if (!g) return;
-      tween(g.__pos || targetRect, targetRect, 420, p => { g.setLens(p); g.__pos = p; });
-    });
-  });
-})();
-
-/* ── 5. CURSOR LENS ── */
-(function initCursorLens() {
-  const stage = document.getElementById('lensStage');
-  let g;
-  stage.addEventListener('mouseenter', () => {
-    if (g) return;
-    g = createGlass(stage, {
-      lens: { x: 50, y: 50, w: 180, h: 180, r: 90 },
-      scale: 15, depth: 127, curvature: 0.7, curvaturePow: 2.0, glowSide: 34, glowTop: 24
-    });
-  });
-  stage.addEventListener('mousemove', e => {
-    if (!g) return;
-    const r = stage.getBoundingClientRect();
-    g.setLens({ x: e.clientX - r.left - 90, y: e.clientY - r.top - 90, w: 180, h: 180, r: 90 });
-  });
-})();
-
-/* ── 6. QR CODE (WebGL) ── */
-(function initQR() {
-  const src = document.getElementById('qrSource');
-  const glc = document.getElementById('qrGlass');
-  const container = document.getElementById('qrContainer');
-  const ctx = src.getContext('2d');
-  const S = 200, M = 11;
-
-  function drawAaveQR() {
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, S, S);
-    ctx.fillStyle = '#1e1a38';
-    const ms = S / (M + 2);
-    function drawEye(ox, oy) {
-      ctx.fillStyle = '#6c5ce7';
-      ctx.beginPath();
-      ctx.roundRect(ox, oy, ms * 3.5, ms * 3.5, 8);
-      ctx.fill();
-      ctx.fillStyle = '#ffffff';
-      ctx.beginPath();
-      ctx.roundRect(ox + ms * 0.7, oy + ms * 0.7, ms * 2.1, ms * 2.1, 4);
-      ctx.fill();
-      ctx.fillStyle = '#1e1a38';
-      ctx.beginPath();
-      ctx.roundRect(ox + ms * 1.1, oy + ms * 1.1, ms * 1.3, ms * 1.3, 3);
-      ctx.fill();
+(function() {
+  function start() {
+    const GE = window.GlassEngine;
+    if (!GE) {
+      setTimeout(start, 16);
+      return;
     }
-    drawEye(ms, ms);
-    drawEye(S - ms * 4.5, ms);
-    drawEye(ms, S - ms * 4.5);
+    const { createGlass, generateMap, createGlassWebGL } = GE;
 
-    // Data dots
-    for (let r = 0; r < M; r++) {
-      for (let c = 0; c < M; c++) {
-        if ((r < 4 && c < 4) || (r < 4 && c > M - 5) || (r > M - 5 && c < 4)) continue;
-        if (((r * 5 + c * 11 + 7) % 3) === 0) {
-          ctx.fillStyle = ((r + c) % 2 === 0) ? '#6c5ce7' : '#2d3436';
-          ctx.beginPath();
-          ctx.arc(ms * (c + 1.5), ms * (r + 1.5), ms * 0.4, 0, Math.PI * 2);
-          ctx.fill();
+    /* Spring-like easeOutBack tween */
+    function tween(from, to, dur, onStep, onDone) {
+      const t0 = performance.now();
+      const c1 = 1.70158, c3 = c1 + 1;
+      (function frame(t) {
+        const k = Math.min((t - t0) / dur, 1);
+        const u = k - 1;
+        const e = 1 + c3 * u * u * u + c1 * u * u;
+        onStep({
+          x: from.x + (to.x - from.x) * e,
+          y: from.y + (to.y - from.y) * e,
+          w: from.w + (to.w - from.w) * k,
+          h: from.h + (to.h - from.h) * k,
+          r: from.r
+        });
+        if (k < 1) requestAnimationFrame(frame);
+        else if (onDone) onDone();
+      })(t0);
+    }
+
+    function init() {
+      /* ── 0. HERO TITLE LENS ── */
+      (function initTitleLens() {
+        const stage = document.getElementById('titleStage');
+        if (!stage) return;
+        const LW = 280, LH = 150, LR = 75;
+
+        const g = createGlass(stage, {
+          lens: { x: 60, y: 24, w: LW, h: LH, r: LR },
+          scale: 20, depth: 127, curvature: .72, curvaturePow: 2.0,
+          glowSide: 42, glowTop: 26
+        });
+
+        let t0 = performance.now(), hover = false;
+        stage.addEventListener('mouseenter', () => { hover = true; });
+        stage.addEventListener('mouseleave', () => { hover = false; });
+        stage.addEventListener('mousemove', e => {
+          const r = stage.getBoundingClientRect();
+          g.setLens({
+            x: e.clientX - r.left - LW / 2,
+            y: e.clientY - r.top - LH / 2,
+            w: LW, h: LH, r: LR
+          });
+        });
+
+        (function drift(t) {
+          if (!hover) {
+            const r = stage.getBoundingClientRect();
+            const k = (t - t0) / 1000;
+            g.setLens({
+              x: (r.width || 800) * .5 + Math.cos(k * .5) * ((r.width || 800) * .27) - LW / 2,
+              y: (r.height || 150) * .5 + Math.sin(k * .8) * ((r.height || 150) * .16) - LH / 2,
+              w: LW, h: LH, r: LR
+            });
+          }
+          requestAnimationFrame(drift);
+        })(t0);
+      })();
+
+      /* ── 1. HERO SECTION ── */
+      (function initHero() {
+        const stage = document.getElementById('heroStage');
+        if (!stage) return;
+        
+        const driftLens = createGlass(stage, {
+          lens: { x: 0, y: 0, w: 200, h: 200, r: 100 },
+          scale: 15, depth: 127, curvature: 0.7, curvaturePow: 2.0, glowSide: 36, glowTop: 24
+        });
+
+        let t0 = performance.now();
+        let userHover = false;
+
+        stage.addEventListener('mouseenter', () => { userHover = true; });
+        stage.addEventListener('mouseleave', () => { userHover = false; });
+        stage.addEventListener('mousemove', e => {
+          const r = stage.getBoundingClientRect();
+          driftLens.setLens({ x: e.clientX - r.left - 100, y: e.clientY - r.top - 100, w: 200, h: 200, r: 100 });
+        });
+
+        (function driftLoop(t) {
+          if (!userHover) {
+            const sr = stage.getBoundingClientRect();
+            const k = (t - t0) / 1000;
+            const x = sr.width * 0.5 + Math.cos(k * 0.6) * (sr.width * 0.3) - 100;
+            const y = sr.height * 0.5 + Math.sin(k * 0.9) * (sr.height * 0.25) - 100;
+            driftLens.setLens({ x, y, w: 200, h: 200, r: 100 });
+          }
+          requestAnimationFrame(driftLoop);
+        })(t0);
+      })();
+
+      /* ── 2. SWITCH COMPONENT ── */
+      (function initSwitch() {
+        const root = document.getElementById('sw');
+        if (!root) return;
+        let on = false;
+        
+        const g = createGlass(root, {
+          lens: { x: 8, y: 8, w: 48, h: 48, r: 24 },
+          scale: 8, depth: 127, curvature: 0.8, curvaturePow: 2.3, glowSide: 54, glowTop: 21
+        });
+        g.__pos = { x: 8, y: 8, w: 48, h: 48, r: 24 };
+
+        root.addEventListener('click', () => {
+          on = !on;
+          root.classList.toggle('on', on);
+          root.setAttribute('aria-checked', on);
+          if (!g) return;
+          const target = { x: on ? 80 : 8, y: 8, w: 48, h: 48, r: 24 };
+          tween(g.__pos, target, 440, p => { g.setLens(p); g.__pos = p; });
+        });
+      })();
+
+      /* ── 3. SLIDER COMPONENT ── */
+      (function initSlider() {
+        const root = document.getElementById('sl');
+        const handle = document.getElementById('slHandle');
+        const fill = document.getElementById('slFill');
+        const refract = document.getElementById('slRefract');
+        const val = document.getElementById('slVal');
+        if (!root || !handle || !fill || !refract || !val) return;
+        const PAD = 16, HW = 36;
+        let TRAV = 320 - PAD * 2 - HW, p = 0.5, dragging = false;
+
+        function updateMetrics() {
+          TRAV = root.getBoundingClientRect().width - PAD * 2 - HW;
         }
-      }
-    }
-  }
-  drawAaveQR();
 
-  let wgl = null, toggled = false;
-  const lens = { x: 30, y: 30, w: 140, h: 140, r: 70 };
+        updateMetrics();
+        const g = createGlass(root, {
+          lens: { x: PAD + p * TRAV, y: 12, w: HW, h: HW, r: HW / 2 },
+          scale: 4, depth: 120, curvature: 0.7, curvaturePow: 2.2, glowSide: 42, glowTop: 18
+        });
+        render();
 
-  container.addEventListener('click', () => {
-    if (!wgl) {
-      wgl = createGlassWebGL(glc, src, {
-        lens, scale: 10, depth: 127, curvature: 0.7, curvaturePow: 2.0, glowSide: 44, glowTop: 30
-      });
-    }
-    toggled = !toggled;
-    if (toggled) {
-      wgl.setLens(lens);
-      wgl.render();
-      glc.style.opacity = '1';
-    } else {
-      glc.style.opacity = '0';
-    }
-  });
-})();
+        function render() {
+          const x = PAD + p * TRAV;
+          handle.style.left = x + 'px';
+          fill.style.width = 'calc(' + (p * 100) + '% - ' + (HW / 2) + 'px)';
+          refract.style.width = 'calc(' + (p * 100) + '% - ' + (HW / 2) + 'px)';
+          val.textContent = Math.round(p * 100) + '%';
+          if (g) g.setLens({ x, y: 12, w: HW, h: HW, r: HW / 2 });
+        }
 
-/* ── 7. DYNAMIC CANVAS SCENE (WebGL) ── */
-(function initDynamicScene() {
-  const src = document.getElementById('dynSource');
-  const glc = document.getElementById('dynGlass');
-  const container = document.getElementById('dynContainer');
-  const ctx = src.getContext('2d');
-  const W = 400, H = 225;
-  const particles = Array.from({ length: 30 }, () => ({
-    x: Math.random() * W, y: Math.random() * H,
-    vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5,
-    r: 10 + Math.random() * 25,
-    c: ['#ff7675', '#74b9ff', '#fd79a8', '#00cec9', '#a29bfe'][Math.floor(Math.random() * 5)]
-  }));
+        function setFromPointer(cx) {
+          const r = root.getBoundingClientRect();
+          p = Math.max(0, Math.min(1, (cx - r.left - PAD - HW / 2) / TRAV));
+          render();
+        }
 
-  function anim(t) {
-    ctx.fillStyle = '#141226';
-    ctx.fillRect(0, 0, W, H);
-    particles.forEach(p => {
-      p.x += p.vx; p.y += p.vy;
-      if (p.x < 0 || p.x > W) p.vx *= -1;
-      if (p.y < 0 || p.y > H) p.vy *= -1;
-      const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
-      g.addColorStop(0, p.c);
-      g.addColorStop(1, 'transparent');
-      ctx.fillStyle = g;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fill();
-    });
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 22px Plus Jakarta Sans, sans-serif';
-    ctx.fillText('Live WebGL Texture', 24, 40);
-    ctx.font = '14px Plus Jakarta Sans, sans-serif';
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.fillText('Move pointer to bend moving particles', 24, 66);
-    requestAnimationFrame(anim);
-  }
-  requestAnimationFrame(anim);
+        root.addEventListener('mousedown', e => { dragging = true; setFromPointer(e.clientX); });
+        root.addEventListener('touchstart', e => { dragging = true; setFromPointer(e.touches[0].clientX); }, { passive: true });
+        window.addEventListener('mousemove', e => { if (dragging) setFromPointer(e.clientX); });
+        window.addEventListener('touchmove', e => { if (dragging) setFromPointer(e.touches[0].clientX); });
+        window.addEventListener('mouseup', () => { dragging = false; });
+        window.addEventListener('touchend', () => { dragging = false; });
+      })();
 
-  let wgl = null;
-  const lensR = 75;
+      /* ── 4. TOGGLE GROUP ── */
+      (function initToggleGroup() {
+        const root = document.getElementById('tg');
+        if (!root) return;
+        const items = [...root.querySelectorAll('.tg-item')];
+        const hl = document.getElementById('tgHl');
+        const refractPill = document.getElementById('tgRefractPill');
+        if (!items.length || !hl || !refractPill) return;
 
-  container.addEventListener('mouseenter', () => {
-    if (!wgl) {
-      wgl = createGlassWebGL(glc, src, {
-        lens: { x: 50, y: 50, w: lensR * 2, h: lensR * 2, r: lensR },
-        scale: 10, depth: 127, curvature: 0.7, curvaturePow: 2.0, glowSide: 35, glowTop: 22
-      });
-      (function loop() {
-        if (wgl) wgl.render();
-        requestAnimationFrame(loop);
+        function getSlotRect(idx) {
+          const rr = root.getBoundingClientRect();
+          const ir = items[idx].getBoundingClientRect();
+          return { x: ir.left - rr.left, y: 8, w: ir.width, h: ir.height, r: 18 };
+        }
+
+        const initRect = getSlotRect(0);
+        hl.style.left = initRect.x + 'px';
+        hl.style.width = initRect.w + 'px';
+        refractPill.style.left = initRect.x + 'px';
+        refractPill.style.width = initRect.w + 'px';
+        const g = createGlass(root, { lens: initRect, scale: 5, depth: 110, curvature: 0.8, curvaturePow: 2.3, glowSide: 32, glowTop: 16 });
+        g.__pos = initRect;
+
+        items.forEach((item, idx) => {
+          item.addEventListener('click', () => {
+            items.forEach(it => it.classList.remove('active'));
+            item.classList.add('active');
+            const targetRect = getSlotRect(idx);
+            hl.style.transition = 'left .42s cubic-bezier(.34,1.56,.64,1), width .42s cubic-bezier(.34,1.56,.64,1)';
+            hl.style.left = targetRect.x + 'px';
+            hl.style.width = targetRect.w + 'px';
+            refractPill.style.transition = 'left .42s cubic-bezier(.34,1.56,.64,1), width .42s cubic-bezier(.34,1.56,.64,1)';
+            refractPill.style.left = targetRect.x + 'px';
+            refractPill.style.width = targetRect.w + 'px';
+            if (!g) return;
+            tween(g.__pos || targetRect, targetRect, 420, p => { g.setLens(p); g.__pos = p; });
+          });
+        });
+      })();
+
+      /* ── 5. CURSOR LENS ── */
+      (function initCursorLens() {
+        const stage = document.getElementById('lensStage');
+        if (!stage) return;
+        let g;
+        stage.addEventListener('mouseenter', () => {
+          if (g) return;
+          g = createGlass(stage, {
+            lens: { x: 50, y: 50, w: 180, h: 180, r: 90 },
+            scale: 15, depth: 127, curvature: 0.7, curvaturePow: 2.0, glowSide: 34, glowTop: 24
+          });
+        });
+        stage.addEventListener('mousemove', e => {
+          if (!g) return;
+          const r = stage.getBoundingClientRect();
+          g.setLens({ x: e.clientX - r.left - 90, y: e.clientY - r.top - 90, w: 180, h: 180, r: 90 });
+        });
+      })();
+
+      /* ── 6. QR CODE (WebGL) ── */
+      (function initQR() {
+        const src = document.getElementById('qrSource');
+        const glc = document.getElementById('qrGlass');
+        const container = document.getElementById('qrContainer');
+        if (!src || !glc || !container) return;
+        const ctx = src.getContext('2d');
+        const S = 200, M = 11;
+
+        function drawAaveQR() {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, S, S);
+          ctx.fillStyle = '#1e1a38';
+          const ms = S / (M + 2);
+          function drawEye(ox, oy) {
+            ctx.fillStyle = '#6c5ce7';
+            ctx.beginPath();
+            ctx.roundRect(ox, oy, ms * 3.5, ms * 3.5, 8);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.roundRect(ox + ms * 0.7, oy + ms * 0.7, ms * 2.1, ms * 2.1, 4);
+            ctx.fill();
+            ctx.fillStyle = '#1e1a38';
+            ctx.beginPath();
+            ctx.roundRect(ox + ms * 1.1, oy + ms * 1.1, ms * 1.3, ms * 1.3, 3);
+            ctx.fill();
+          }
+          drawEye(ms, ms);
+          drawEye(S - ms * 4.5, ms);
+          drawEye(ms, S - ms * 4.5);
+
+          // Data dots
+          for (let r = 0; r < M; r++) {
+            for (let c = 0; c < M; c++) {
+              if ((r < 4 && c < 4) || (r < 4 && c > M - 5) || (r > M - 5 && c < 4)) continue;
+              if (((r * 5 + c * 11 + 7) % 3) === 0) {
+                ctx.fillStyle = ((r + c) % 2 === 0) ? '#6c5ce7' : '#2d3436';
+                ctx.beginPath();
+                ctx.arc(ms * (c + 1.5), ms * (r + 1.5), ms * 0.4, 0, Math.PI * 2);
+                ctx.fill();
+              }
+            }
+          }
+        }
+        drawAaveQR();
+
+        let wgl = null, toggled = false;
+        const lens = { x: 30, y: 30, w: 140, h: 140, r: 70 };
+
+        container.addEventListener('click', () => {
+          if (!wgl) {
+            wgl = createGlassWebGL(glc, src, {
+              lens, scale: 10, depth: 127, curvature: 0.7, curvaturePow: 2.0, glowSide: 44, glowTop: 30
+            });
+          }
+          toggled = !toggled;
+          if (toggled) {
+            wgl.setLens(lens);
+            wgl.render();
+            glc.style.opacity = '1';
+          } else {
+            glc.style.opacity = '0';
+          }
+        });
+      })();
+
+      /* ── 7. DYNAMIC CANVAS SCENE (WebGL) ── */
+      (function initDynamicScene() {
+        const src = document.getElementById('dynSource');
+        const glc = document.getElementById('dynGlass');
+        const container = document.getElementById('dynContainer');
+        if (!src || !glc || !container) return;
+        const ctx = src.getContext('2d');
+        const W = 400, H = 225;
+        const particles = Array.from({ length: 30 }, () => ({
+          x: Math.random() * W, y: Math.random() * H,
+          vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5,
+          r: 10 + Math.random() * 25,
+          c: ['#ff7675', '#74b9ff', '#fd79a8', '#00cec9', '#a29bfe'][Math.floor(Math.random() * 5)]
+        }));
+
+        function anim(t) {
+          ctx.fillStyle = '#141226';
+          ctx.fillRect(0, 0, W, H);
+          particles.forEach(p => {
+            p.x += p.vx; p.y += p.vy;
+            if (p.x < 0 || p.x > W) p.vx *= -1;
+            if (p.y < 0 || p.y > H) p.vy *= -1;
+            const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+            g.addColorStop(0, p.c);
+            g.addColorStop(1, 'transparent');
+            ctx.fillStyle = g;
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+            ctx.fill();
+          });
+          ctx.fillStyle = '#ffffff';
+          ctx.font = 'bold 22px Plus Jakarta Sans, sans-serif';
+          ctx.fillText('Live WebGL Texture', 24, 40);
+          ctx.font = '14px Plus Jakarta Sans, sans-serif';
+          ctx.fillStyle = 'rgba(255,255,255,0.7)';
+          ctx.fillText('Move pointer to bend moving particles', 24, 66);
+          requestAnimationFrame(anim);
+        }
+        requestAnimationFrame(anim);
+
+        let wgl = null;
+        const lensR = 75;
+
+        container.addEventListener('mouseenter', () => {
+          if (!wgl) {
+            wgl = createGlassWebGL(glc, src, {
+              lens: { x: 50, y: 50, w: lensR * 2, h: lensR * 2, r: lensR },
+              scale: 10, depth: 127, curvature: 0.7, curvaturePow: 2.0, glowSide: 35, glowTop: 22
+            });
+            (function loop() {
+              if (wgl) wgl.render();
+              requestAnimationFrame(loop);
+            })();
+          }
+        });
+
+        container.addEventListener('mousemove', e => {
+          if (!wgl) return;
+          const r = container.getBoundingClientRect();
+          const sx = W / r.width, sy = H / r.height;
+          wgl.setLens({
+            x: (e.clientX - r.left) * sx - lensR,
+            y: (e.clientY - r.top) * sy - lensR,
+            w: lensR * 2, h: lensR * 2, r: lensR
+          });
+        });
+      })();
+
+      /* ── 8. PLAYGROUND CONTROLS ── */
+      (function initPlayground() {
+        const result = document.getElementById('pgResult');
+        const mapImg = document.getElementById('pgMap');
+        if (!result || !mapImg) return;
+        const ids = ['cWidth','cHeight','cRadius','cScale','cDepth','cCurv','cSplay','cChroma','cBlur','cGlow','cEdge','cAngle'];
+        const labels = {
+          cWidth:'vWidth', cHeight:'vHeight', cRadius:'vRadius', cScale:'vScale',
+          cDepth:'vDepth', cCurv:'vCurv', cSplay:'vSplay', cChroma:'vChroma',
+          cBlur:'vBlur', cGlow:'vGlow', cEdge:'vEdge', cAngle:'vAngle'
+        };
+        let g = null, queued = false, gStop = () => {};
+
+        function readParams() {
+          return {
+            w: +document.getElementById('cWidth').value,
+            h: +document.getElementById('cHeight').value,
+            rad: +document.getElementById('cRadius').value,
+            scale: +document.getElementById('cScale').value,
+            depth: +document.getElementById('cDepth').value,
+            curv: +document.getElementById('cCurv').value,
+            splay: +document.getElementById('cSplay').value,
+            chroma: +document.getElementById('cChroma').value,
+            blur: +document.getElementById('cBlur').value,
+            glow: +document.getElementById('cGlow').value,
+            edge: +document.getElementById('cEdge').value,
+            angle: +document.getElementById('cAngle').value
+          };
+        }
+
+        function refresh() {
+          queued = false;
+          const p = readParams();
+          for (const id of ids) {
+            const el = document.getElementById(id);
+            if (!el) continue;
+            const val = +el.value;
+            const lbl = document.getElementById(labels[id]);
+            if (lbl) lbl.textContent = id === 'cAngle' ? val + '°' : val.toString().slice(0, 5);
+          }
+
+          const mapDepth = Math.round(p.depth * (127 / 60));
+          const curvature = Math.max(0, Math.min(1, p.curv / 100));
+          const curvaturePow = 0.1 + p.splay * 2.9;
+          const radAngle = p.angle * Math.PI / 180;
+          const glowSide = Math.round(p.glow * 100 * Math.cos(radAngle) + p.edge * 60);
+          const glowTop = Math.round(p.glow * 100 * Math.sin(radAngle) + p.edge * 30);
+
+          const rr = result.getBoundingClientRect();
+          const lw = Math.round(p.w / 120 * (rr.width || 400) * 0.65);
+          const lh = Math.round(p.h / 80 * (rr.height || 200) * 0.65);
+          const lr = Math.round(p.rad / 64 * Math.min(lw, lh) / 2);
+
+          mapImg.src = generateMap({
+            w: 256, h: Math.max(32, Math.round(256 * lh / (lw || 1))),
+            radius: lr * (256 / (lw || 1)),
+            depth: mapDepth, curvature, curvaturePow,
+            glowSide: Math.abs(glowSide), glowTop: Math.abs(glowTop)
+          }).dataUrl;
+
+          if (g) { g.destroy(); g = null; }
+          let alive = true;
+          const cx = ((rr.width || 400) - lw) / 2;
+          const cy = ((rr.height || 200) - lh) / 2;
+
+          g = createGlass(result, {
+            lens: { x: cx, y: cy, w: lw, h: lh, r: lr },
+            scale: p.scale, depth: mapDepth, curvature, curvaturePow,
+            chroma: [1 + p.chroma, 1 + p.chroma / 2, 1],
+            blurPx: p.blur,
+            glowSide: Math.abs(glowSide), glowTop: Math.abs(glowTop)
+          });
+
+          gStop();
+          gStop = () => { alive = false; };
+          const t0 = performance.now();
+          (function drift(t) {
+            if (!alive) return;
+            const k = (t - t0) / 1000;
+            g.setLens({
+              x: cx + Math.sin(k * 0.9) * 35,
+              y: cy + Math.cos(k * 0.6) * 15,
+              w: lw, h: lh, r: lr
+            });
+            requestAnimationFrame(drift);
+          })(t0);
+        }
+
+        function queueUpdate() {
+          if (!queued) {
+            queued = true;
+            requestAnimationFrame(refresh);
+          }
+        }
+
+        ids.forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.addEventListener('input', queueUpdate);
+        });
+        refresh();
+      })();
+
+      /* ── 9. VIDEO PLAYER (Multi-Lens WebGL) ── */
+      (function initVideoPlayer() {
+        const video = document.getElementById('vidSource');
+        const canvas = document.getElementById('vidGlass');
+        const playBtn = document.getElementById('vidPlayBtn');
+        const backBtn = document.getElementById('vidBackBtn');
+        const fwdBtn = document.getElementById('vidFwdBtn');
+        const scrubTrack = document.getElementById('vidScrubTrack');
+        const scrubFill = document.getElementById('vidScrubFill');
+        const timeEl = document.getElementById('vidTime');
+
+        if (!canvas || !window.GlassEngine) return;
+
+        // Create fallback procedural canvas scene in case video is offline/loading
+        const procCanvas = document.createElement('canvas');
+        procCanvas.width = 800;
+        procCanvas.height = 450;
+        const pctx = procCanvas.getContext('2d');
+
+        function drawProceduralScene(t) {
+          pctx.fillStyle = '#0a0815';
+          pctx.fillRect(0, 0, 800, 450);
+          
+          // Glowing mesh
+          const time = t / 1000;
+          for (let i = 0; i < 5; i++) {
+            const cx = 400 + Math.sin(time + i) * 200;
+            const cy = 225 + Math.cos(time * 0.8 + i * 1.5) * 100;
+            const rad = 120 + Math.sin(time * 1.2 + i) * 40;
+            const grad = pctx.createRadialGradient(cx, cy, 10, cx, cy, rad);
+            const cols = ['#6c5ce7', '#00cec9', '#ff7675', '#a29bfe', '#fd79a8'];
+            grad.addColorStop(0, cols[i % cols.length]);
+            grad.addColorStop(1, 'transparent');
+            pctx.fillStyle = grad;
+            pctx.beginPath();
+            pctx.arc(cx, cy, rad, 0, Math.PI * 2);
+            pctx.fill();
+          }
+
+          pctx.fillStyle = '#ffffff';
+          pctx.font = 'bold 36px Plus Jakarta Sans, sans-serif';
+          pctx.fillText('Aave Multi-Lens Video Surface', 48, 80);
+          pctx.font = '18px Plus Jakarta Sans, sans-serif';
+          pctx.fillStyle = 'rgba(255,255,255,0.7)';
+          pctx.fillText('Live WebGL multi-lens refraction over dynamic media', 48, 120);
+        }
+
+        const W = 800, H = 450;
+        canvas.width = W;
+        canvas.height = H;
+
+        let activeSource = (video && video.readyState >= 2) ? video : procCanvas;
+        let wgl = GlassEngine.createGlassWebGL(canvas, activeSource, { lenses: [] });
+
+        const updateLenses = () => {
+          const curW = canvas.width || 800;
+          const curH = canvas.height || 450;
+          const lenses = [
+            { x: 20,  y: curH - 55, w: 70,  h: 36, r: 18, scale: 0.04, depth: 100, curvature: 0.6 },
+            { x: 100, y: curH - 55, w: 60,  h: 36, r: 18, scale: 0.04, depth: 100, curvature: 0.6 },
+            { x: 170, y: curH - 55, w: 60,  h: 36, r: 18, scale: 0.04, depth: 100, curvature: 0.6 },
+            { x: 240, y: curH - 49, w: curW - 300, h: 24, r: 12, scale: 0.02, depth: 60, curvature: 0.4 }
+          ];
+          if (wgl) wgl.setLenses(lenses);
+        };
+
+        updateLenses();
+
+        function renderLoop(t) {
+          if (video && video.readyState >= 2) {
+            activeSource = video;
+            const cur = video.currentTime;
+            const dur = video.duration || 1;
+            if (scrubFill) scrubFill.style.width = (cur / dur * 100) + '%';
+            const m = Math.floor(cur / 60);
+            const s = Math.floor(cur % 60);
+            if (timeEl) timeEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
+          } else {
+            drawProceduralScene(t);
+            activeSource = procCanvas;
+          }
+
+          if (wgl) {
+            wgl.render();
+          }
+          requestAnimationFrame(renderLoop);
+        }
+        requestAnimationFrame(renderLoop);
+
+        if (playBtn && video) {
+          playBtn.addEventListener('click', () => {
+            if (video.paused) {
+              video.play().then(() => {
+                playBtn.textContent = 'Pause';
+              }).catch(() => {
+                playBtn.textContent = 'Playing (Scene)';
+              });
+            } else {
+              video.pause();
+              playBtn.textContent = 'Play';
+            }
+          });
+        }
+
+        if (backBtn && video) {
+          backBtn.addEventListener('click', () => {
+            video.currentTime = Math.max(0, video.currentTime - 10);
+          });
+        }
+
+        if (fwdBtn && video) {
+          fwdBtn.addEventListener('click', () => {
+            video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
+          });
+        }
+
+        if (scrubTrack && video) {
+          scrubTrack.addEventListener('click', e => {
+            const r = scrubTrack.getBoundingClientRect();
+            const pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+            if (video.duration) {
+              video.currentTime = pct * video.duration;
+            }
+          });
+        }
       })();
     }
-  });
 
-  container.addEventListener('mousemove', e => {
-    if (!wgl) return;
-    const r = container.getBoundingClientRect();
-    const sx = W / r.width, sy = H / r.height;
-    wgl.setLens({
-      x: (e.clientX - r.left) * sx - lensR,
-      y: (e.clientY - r.top) * sy - lensR,
-      w: lensR * 2, h: lensR * 2, r: lensR
-    });
-  });
-})();
-
-/* ── 8. PLAYGROUND CONTROLS ── */
-(function initPlayground() {
-  const result = document.getElementById('pgResult');
-  const mapImg = document.getElementById('pgMap');
-  const ids = ['cWidth','cHeight','cRadius','cScale','cDepth','cCurv','cSplay','cChroma','cBlur','cGlow','cEdge','cAngle'];
-  const labels = {
-    cWidth:'vWidth', cHeight:'vHeight', cRadius:'vRadius', cScale:'vScale',
-    cDepth:'vDepth', cCurv:'vCurv', cSplay:'vSplay', cChroma:'vChroma',
-    cBlur:'vBlur', cGlow:'vGlow', cEdge:'vEdge', cAngle:'vAngle'
-  };
-  let g = null, queued = false, gStop = () => {};
-
-  function readParams() {
-    return {
-      w: +document.getElementById('cWidth').value,
-      h: +document.getElementById('cHeight').value,
-      rad: +document.getElementById('cRadius').value,
-      scale: +document.getElementById('cScale').value,
-      depth: +document.getElementById('cDepth').value,
-      curv: +document.getElementById('cCurv').value,
-      splay: +document.getElementById('cSplay').value,
-      chroma: +document.getElementById('cChroma').value,
-      blur: +document.getElementById('cBlur').value,
-      glow: +document.getElementById('cGlow').value,
-      edge: +document.getElementById('cEdge').value,
-      angle: +document.getElementById('cAngle').value
-    };
+    init();
   }
 
-  function refresh() {
-    queued = false;
-    const p = readParams();
-    for (const id of ids) {
-      const val = (+document.getElementById(id).value);
-      document.getElementById(labels[id]).textContent = id === 'cAngle' ? val + '°' : val.toString().slice(0, 5);
-    }
-
-    const mapDepth = Math.round(p.depth * (127 / 60));
-    const curvature = Math.max(0, Math.min(1, p.curv / 100));
-    const curvaturePow = 0.1 + p.splay * 2.9;
-    const radAngle = p.angle * Math.PI / 180;
-    const glowSide = Math.round(p.glow * 100 * Math.cos(radAngle) + p.edge * 60);
-    const glowTop = Math.round(p.glow * 100 * Math.sin(radAngle) + p.edge * 30);
-
-    const rr = result.getBoundingClientRect();
-    const lw = Math.round(p.w / 120 * rr.width * 0.65);
-    const lh = Math.round(p.h / 80 * rr.height * 0.65);
-    const lr = Math.round(p.rad / 64 * Math.min(lw, lh) / 2);
-
-    mapImg.src = generateMap({
-      w: 256, h: Math.round(256 * lh / lw),
-      radius: lr * (256 / lw),
-      depth: mapDepth, curvature, curvaturePow,
-      glowSide: Math.abs(glowSide), glowTop: Math.abs(glowTop)
-    }).dataUrl;
-
-    if (g) { g.destroy(); g = null; }
-    let alive = true;
-    const cx = (rr.width - lw) / 2;
-    const cy = (rr.height - lh) / 2;
-
-    g = createGlass(result, {
-      lens: { x: cx, y: cy, w: lw, h: lh, r: lr },
-      scale: p.scale, depth: mapDepth, curvature, curvaturePow,
-      chroma: [1 + p.chroma, 1 + p.chroma / 2, 1],
-      blurPx: p.blur,
-      glowSide: Math.abs(glowSide), glowTop: Math.abs(glowTop)
-    });
-
-    gStop();
-    gStop = () => { alive = false; };
-    const t0 = performance.now();
-    (function drift(t) {
-      if (!alive) return;
-      const k = (t - t0) / 1000;
-      g.setLens({
-        x: cx + Math.sin(k * 0.9) * 35,
-        y: cy + Math.cos(k * 0.6) * 15,
-        w: lw, h: lh, r: lr
-      });
-      requestAnimationFrame(drift);
-    })(t0);
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
   }
-
-  function queueUpdate() {
-    if (!queued) {
-      queued = true;
-      requestAnimationFrame(refresh);
-    }
-  }
-
-  ids.forEach(id => document.getElementById(id).addEventListener('input', queueUpdate));
-  refresh();
-})();
-</script>
-<script>
-/* ── 8. VIDEO PLAYER (Multi-Lens WebGL) ── */
-(function initVideoPlayer() {
-  const video = document.getElementById('vidSource');
-  const canvas = document.getElementById('vidGlass');
-  const playBtn = document.getElementById('vidPlayBtn');
-  const backBtn = document.getElementById('vidBackBtn');
-  const fwdBtn = document.getElementById('vidFwdBtn');
-  const scrubTrack = document.getElementById('vidScrubTrack');
-  const scrubFill = document.getElementById('vidScrubFill');
-  const timeEl = document.getElementById('vidTime');
-
-  if (!video || !canvas || !window.GlassEngine) return;
-
-  let wgl = null;
-  
-  video.addEventListener('loadedmetadata', () => {
-    const W = video.videoWidth || 800;
-    const H = video.videoHeight || 450;
-    canvas.width = W;
-    canvas.height = H;
-
-    const updateLenses = () => {
-      const curW = canvas.width;
-      const curH = canvas.height;
-      const lenses = [
-        { x: 20,  y: curH - 55, w: 70,  h: 36, r: 18, scale: 0.04, depth: 100, curvature: 0.6 },
-        { x: 100, y: curH - 55, w: 60,  h: 36, r: 18, scale: 0.04, depth: 100, curvature: 0.6 },
-        { x: 170, y: curH - 55, w: 60,  h: 36, r: 18, scale: 0.04, depth: 100, curvature: 0.6 },
-        { x: 240, y: curH - 49, w: curW - 300, h: 24, r: 12, scale: 0.02, depth: 60, curvature: 0.4 }
-      ];
-      if (wgl) {
-        wgl.setLenses(lenses);
-      }
-    };
-
-    wgl = GlassEngine.createGlassWebGL(canvas, video, { lenses: [] });
-    updateLenses();
-
-    function renderLoop() {
-      if (wgl && video.readyState >= 2) {
-        wgl.render();
-        updateLenses();
-        const cur = video.currentTime;
-        const dur = video.duration || 1;
-        scrubFill.style.width = (cur / dur * 100) + '%';
-        const m = Math.floor(cur / 60);
-        const s = Math.floor(cur % 60);
-        timeEl.textContent = m + ':' + (s < 10 ? '0' : '') + s;
-      }
-      requestAnimationFrame(renderLoop);
-    }
-    requestAnimationFrame(renderLoop);
-  });
-
-  playBtn.addEventListener('click', () => {
-    if (video.paused) {
-      video.play();
-      playBtn.textContent = 'Pause';
-    } else {
-      video.pause();
-      playBtn.textContent = 'Play';
-    }
-  });
-
-  backBtn.addEventListener('click', () => {
-    video.currentTime = Math.max(0, video.currentTime - 10);
-  });
-
-  fwdBtn.addEventListener('click', () => {
-    video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
-  });
-
-  scrubTrack.addEventListener('click', e => {
-    const r = scrubTrack.getBoundingClientRect();
-    const pct = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
-    if (video.duration) {
-      video.currentTime = pct * video.duration;
-    }
-  });
-
-  video.load();
 })();
 </script>
 </body>

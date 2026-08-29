@@ -394,146 +394,161 @@ h1{
 
 <script src="glass-engine.js"></script>
 <script>
-const GE = window.GlassEngine;
-
-function tween(from, to, dur, step, done) {
-  const t0 = performance.now();
-  const c1 = 1.70158, c3 = c1 + 1;
-  function frame(t) {
-    const k = Math.min((t - t0) / dur, 1);
-    const u = k - 1;
-    const e = 1 + c3 * u * u * u + c1 * u * u;
-    step({
-      x: from.x + (to.x - from.x) * e,
-      y: from.y + (to.y - from.y) * e,
-      w: from.w + (to.w - from.w) * k,
-      h: from.h + (to.h - from.h) * k,
-      r: from.r
-    });
-    if (k < 1) requestAnimationFrame(frame);
-    else if (done) done();
-  }
-  requestAnimationFrame(frame);
-}
-
-/* ── HERO ── */
 (function() {
-  const hero = document.getElementById('hero');
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    const hr = hero.getBoundingClientRect();
-    hero.querySelectorAll('.hero-chip').forEach(chip => {
-      const cr = chip.getBoundingClientRect();
-      GE.createGlass(hero, {
-        lens: { x: cr.left - hr.left - 6, y: cr.top - hr.top - 6, w: cr.width + 12, h: cr.height + 12, r: 999 },
-        scale: 0.06, depth: 120, rimStart: 0.4, rimPow: 2.1, glowSide: 28, glowTop: 22
-      });
-    });
-  }));
-})();
+  function start() {
+    const GE = window.GlassEngine;
+    if (!GE) {
+      setTimeout(start, 16);
+      return;
+    }
 
-/* ── SWITCH ── */
-(function(){
-  const root = document.getElementById('sw');
-  let on = false, g;
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    g = GE.createGlass(root, {
-      lens: { x: 7, y: 7, w: 44, h: 44, r: 22 },
-      scale: 0.14, depth: 127, rimStart: 0.76, rimPow: 2.3, glowSide: 54, glowTop: 21
-    });
-    g.__pos = { x: 7, y: 7, w: 44, h: 44, r: 22 };
-  }));
-  root.addEventListener('click', () => {
-    on = !on;
-    root.classList.toggle('on', on);
-    root.setAttribute('aria-checked', on);
-    if (!g) return;
-    const target = { x: on ? 75 : 7, y: 7, w: 44, h: 44, r: 22 };
-    tween(g.__pos, target, 400, p => { g.setLens(p); g.__pos = p; });
-  });
-})();
+    function tween(from, to, dur, step, done) {
+      const t0 = performance.now();
+      const c1 = 1.70158, c3 = c1 + 1;
+      function frame(t) {
+        const k = Math.min((t - t0) / dur, 1);
+        const u = k - 1;
+        const e = 1 + c3 * u * u * u + c1 * u * u;
+        step({
+          x: from.x + (to.x - from.x) * e,
+          y: from.y + (to.y - from.y) * e,
+          w: from.w + (to.w - from.w) * k,
+          h: from.h + (to.h - from.h) * k,
+          r: from.r
+        });
+        if (k < 1) requestAnimationFrame(frame);
+        else if (done) done();
+      }
+      requestAnimationFrame(frame);
+    }
 
-/* ── SLIDER ── */
-(function(){
-  const root = document.getElementById('sl');
-  const handle = document.getElementById('slHandle');
-  const fill = document.getElementById('slFill');
-  const val = document.getElementById('slVal');
-  const PAD = 14, HW = 34, TRAV = 260 - PAD * 2 - HW;
-  let p = 0.5, dragging = false, g;
+    function init() {
+      /* ── HERO ── */
+      (function() {
+        const hero = document.getElementById('hero');
+        if (!hero) return;
+        const hr = hero.getBoundingClientRect();
+        hero.querySelectorAll('.hero-chip').forEach(chip => {
+          const cr = chip.getBoundingClientRect();
+          GE.createGlass(hero, {
+            lens: { x: cr.left - hr.left - 6, y: cr.top - hr.top - 6, w: cr.width + 12, h: cr.height + 12, r: 999 },
+            scale: 15, depth: 120, curvature: 0.7, curvaturePow: 2.1, glowSide: 28, glowTop: 22
+          });
+        });
+      })();
 
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    g = GE.createGlass(root, {
-      lens: { x: PAD + p * TRAV, y: 11, w: HW, h: HW, r: HW / 2 },
-      scale: 0.06, depth: 127, rimStart: 0.68, rimPow: 2.2, glowSide: 44, glowTop: 18
-    });
-    render();
-  }));
+      /* ── SWITCH ── */
+      (function(){
+        const root = document.getElementById('sw');
+        if (!root) return;
+        let on = false, g;
+        g = GE.createGlass(root, {
+          lens: { x: 7, y: 7, w: 44, h: 44, r: 22 },
+          scale: 8, depth: 127, curvature: 0.8, curvaturePow: 2.3, glowSide: 54, glowTop: 21
+        });
+        g.__pos = { x: 7, y: 7, w: 44, h: 44, r: 22 };
+        root.addEventListener('click', () => {
+          on = !on;
+          root.classList.toggle('on', on);
+          root.setAttribute('aria-checked', on);
+          if (!g) return;
+          const target = { x: on ? 75 : 7, y: 7, w: 44, h: 44, r: 22 };
+          tween(g.__pos, target, 400, p => { g.setLens(p); g.__pos = p; });
+        });
+      })();
 
-  function render(){
-    const x = PAD + p * TRAV;
-    handle.style.left = x + 'px';
-    fill.style.width = 'calc(' + (p * 100) + '% - ' + (HW / 2) + 'px)';
-    val.textContent = Math.round(p * 100) + '%';
-    if (g) g.setLens({ x, y: 11, w: HW, h: HW, r: HW / 2 });
+      /* ── SLIDER ── */
+      (function(){
+        const root = document.getElementById('sl');
+        const handle = document.getElementById('slHandle');
+        const fill = document.getElementById('slFill');
+        const val = document.getElementById('slVal');
+        if (!root || !handle || !fill || !val) return;
+        const PAD = 14, HW = 34, TRAV = 260 - PAD * 2 - HW;
+        let p = 0.5, dragging = false, g;
+
+        g = GE.createGlass(root, {
+          lens: { x: PAD + p * TRAV, y: 11, w: HW, h: HW, r: HW / 2 },
+          scale: 4, depth: 127, curvature: 0.7, curvaturePow: 2.2, glowSide: 44, glowTop: 18
+        });
+        render();
+
+        function render(){
+          const x = PAD + p * TRAV;
+          handle.style.left = x + 'px';
+          fill.style.width = 'calc(' + (p * 100) + '% - ' + (HW / 2) + 'px)';
+          val.textContent = Math.round(p * 100) + '%';
+          if (g) g.setLens({ x, y: 11, w: HW, h: HW, r: HW / 2 });
+        }
+        const setFrom = cx => {
+          const r = root.getBoundingClientRect();
+          p = Math.max(0, Math.min(1, (cx - r.left - PAD - HW / 2) / TRAV));
+          render();
+        };
+        root.addEventListener('mousedown', e => { dragging = true; setFrom(e.clientX); });
+        root.addEventListener('touchstart', e => { dragging = true; setFrom(e.touches[0].clientX); }, { passive: true });
+        window.addEventListener('mousemove', e => { if (dragging) setFrom(e.clientX); });
+        window.addEventListener('touchmove', e => { if (dragging) setFrom(e.touches[0].clientX); });
+        window.addEventListener('mouseup', () => { dragging = false; });
+        window.addEventListener('touchend', () => { dragging = false; });
+      })();
+
+      /* ── TOGGLE GROUP ── */
+      (function(){
+        const root = document.getElementById('tg');
+        if (!root) return;
+        const items = [...root.querySelectorAll('.tg-item')];
+        const hl = document.getElementById('tgHl');
+        if (!items.length || !hl) return;
+        let g;
+        function place(idx){
+          const rr = root.getBoundingClientRect();
+          const ir = items[idx].getBoundingClientRect();
+          return { x: ir.left - rr.left, y: 6, w: ir.width, h: ir.height, r: 14 };
+        }
+        const l = place(0);
+        hl.style.left = l.x + 'px'; hl.style.width = l.w + 'px';
+        g = GE.createGlass(root, { lens: l, scale: 5, depth: 120, curvature: 0.8, curvaturePow: 2.2, glowSide: 36, glowTop: 16 });
+        items.forEach((it, i) => it.addEventListener('click', () => {
+          items.forEach(x => x.classList.remove('active'));
+          it.classList.add('active');
+          const l = place(i);
+          hl.style.transition = 'left .4s cubic-bezier(.34,1.56,.64,1), width .4s cubic-bezier(.34,1.56,.64,1)';
+          hl.style.left = l.x + 'px'; hl.style.width = l.w + 'px';
+          if (!g) return;
+          const from = g.__pos || l;
+          tween(from, l, 400, p => { g.setLens(p); g.__pos = p; });
+        }));
+      })();
+
+      /* ── CURSOR LENS ── */
+      (function(){
+        const stage = document.getElementById('stage');
+        if (!stage) return;
+        let g;
+        stage.addEventListener('mouseenter', () => {
+          if (g) return;
+          g = GE.createGlass(stage, {
+            lens: { x: 40, y: 40, w: 170, h: 170, r: 85 },
+            scale: 15, depth: 127, curvature: 0.7, curvaturePow: 2.1, glowSide: 30, glowTop: 24
+          });
+        });
+        stage.addEventListener('mousemove', e => {
+          if (!g) return;
+          const r = stage.getBoundingClientRect();
+          g.setLens({ x: e.clientX - r.left - 85, y: e.clientY - r.top - 85, w: 170, h: 170, r: 85 });
+        });
+      })();
+    }
+
+    init();
   }
-  const setFrom = cx => {
-    const r = root.getBoundingClientRect();
-    p = Math.max(0, Math.min(1, (cx - r.left - PAD - HW / 2) / TRAV));
-    render();
-  };
-  root.addEventListener('mousedown', e => { dragging = true; setFrom(e.clientX); });
-  root.addEventListener('touchstart', e => { dragging = true; setFrom(e.touches[0].clientX); }, { passive: true });
-  window.addEventListener('mousemove', e => { if (dragging) setFrom(e.clientX); });
-  window.addEventListener('touchmove', e => { if (dragging) setFrom(e.touches[0].clientX); });
-  window.addEventListener('mouseup', () => { dragging = false; });
-  window.addEventListener('touchend', () => { dragging = false; });
-})();
 
-/* ── TOGGLE GROUP ── */
-(function(){
-  const root = document.getElementById('tg');
-  const items = [...root.querySelectorAll('.tg-item')];
-  let g;
-  function place(idx){
-    const rr = root.getBoundingClientRect();
-    const ir = items[idx].getBoundingClientRect();
-    return { x: ir.left - rr.left, y: 6, w: ir.width, h: ir.height, r: 14 };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', start);
+  } else {
+    start();
   }
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    const l = place(0);
-    const hl = document.getElementById('tgHl');
-    hl.style.left = l.x + 'px'; hl.style.width = l.w + 'px';
-    g = GE.createGlass(root, { lens: l, scale: 0.045, depth: 120, rimStart: 0.75, rimPow: 2.2, glowSide: 36, glowTop: 16 });
-  }));
-  items.forEach((it, i) => it.addEventListener('click', () => {
-    items.forEach(x => x.classList.remove('active'));
-    it.classList.add('active');
-    const l = place(i);
-    const hl = document.getElementById('tgHl');
-    hl.style.transition = 'left .4s cubic-bezier(.34,1.56,.64,1), width .4s cubic-bezier(.34,1.56,.64,1)';
-    hl.style.left = l.x + 'px'; hl.style.width = l.w + 'px';
-    if (!g) return;
-    const from = g.__pos || l;
-    tween(from, l, 400, p => { g.setLens(p); g.__pos = p; });
-  }));
-})();
-
-/* ── CURSOR LENS ── */
-(function(){
-  const stage = document.getElementById('stage');
-  let g;
-  stage.addEventListener('mouseenter', () => {
-    if (g) return;
-    g = GE.createGlass(stage, {
-      lens: { x: 40, y: 40, w: 170, h: 170, r: 85 },
-      scale: 0.0756, depth: 127, rimStart: 0.35, rimPow: 2.1, glowSide: 30, glowTop: 24
-    });
-  });
-  stage.addEventListener('mousemove', e => {
-    if (!g) return;
-    const r = stage.getBoundingClientRect();
-    g.setLens({ x: e.clientX - r.left - 85, y: e.clientY - r.top - 85, w: 170, h: 170, r: 85 });
-  });
 })();
 </script>
 </body>

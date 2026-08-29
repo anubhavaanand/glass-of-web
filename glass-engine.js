@@ -23,14 +23,16 @@ function svgEl(name) {
 }
 
 function cachedMap(opts) {
+  const curvature = opts.curvature ?? opts.rimStart ?? 0.5;
+  const curvaturePow = opts.curvaturePow ?? opts.rimPow ?? 1.0;
   const key = [
     opts.w, opts.h, opts.radius,
-    opts.depth, opts.curvature, opts.curvaturePow,
-    opts.glowSide, opts.glowTop
+    opts.depth ?? 127, curvature, curvaturePow,
+    opts.glowSide ?? 54, opts.glowTop ?? 21
   ].join('|');
   if (!_mapCache.has(key)) {
     if (_mapCache.size > 60) _mapCache.clear();
-    _mapCache.set(key, generateMap(opts));
+    _mapCache.set(key, generateMap(Object.assign({}, opts, { curvature, curvaturePow })));
   }
   return _mapCache.get(key);
 }
@@ -47,16 +49,17 @@ function cachedMap(opts) {
  */
 
 function generateMap(opts) {
+  opts = opts || {};
   const {
     w = 256,
     h = w,
     radius,
     depth = 127,
-    curvature = 0.5,
-    curvaturePow = 1.0,
+    curvature = opts.rimStart ?? 0.5,
+    curvaturePow = opts.rimPow ?? 1.0,
     glowSide = 54,
     glowTop = 21,
-  } = opts || {};
+  } = opts;
 
   const R = radius ?? Math.min(w, h) / 2;
 
@@ -330,8 +333,8 @@ function createGlass(container, o) {
   const lens = o.lens;
   const scale = o.scale ?? 40;
   const depth = o.depth ?? 127;
-  const curvature = o.curvature ?? 0.5;
-  const curvaturePow = o.curvaturePow ?? 1.0;
+  const curvature = o.curvature ?? o.rimStart ?? 0.5;
+  const curvaturePow = o.curvaturePow ?? o.rimPow ?? 1.0;
   const glowSide = o.glowSide ?? 54;
   const glowTop = o.glowTop ?? 21;
   const chroma = o.chroma;
@@ -529,8 +532,8 @@ function createGlassWebGL(glCanvas, source, o) {
     lensesList = [Object.assign({
       scale: o.scale ?? 0.05,
       depth: o.depth ?? 127,
-      curvature: o.curvature ?? 0.5,
-      curvaturePow: o.curvaturePow ?? 1.0,
+      curvature: o.curvature ?? o.rimStart ?? 0.5,
+      curvaturePow: o.curvaturePow ?? o.rimPow ?? 1.0,
       glowSide: o.glowSide ?? 54,
       glowTop: o.glowTop ?? 21,
       chroma: o.chroma || [1.08, 1.04, 1.0],
@@ -546,8 +549,8 @@ function createGlassWebGL(glCanvas, source, o) {
       h: Math.min(Math.round(l.h), 256),
       radius: l.r,
       depth: l.depth ?? 127,
-      curvature: l.curvature ?? 0.5,
-      curvaturePow: l.curvaturePow ?? 1.0,
+      curvature: l.curvature ?? l.rimStart ?? 0.5,
+      curvaturePow: l.curvaturePow ?? l.rimPow ?? 1.0,
       glowSide: l.glowSide ?? 54,
       glowTop: l.glowTop ?? 21,
     });
@@ -609,7 +612,8 @@ function createGlassWebGL(glCanvas, source, o) {
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, tex);
 
-        const sc = l.scale ?? 0.05;
+        const rawScale = l.scale ?? 0.04;
+        const sc = rawScale > 1.0 ? (rawScale / sw) : rawScale;
         const ch = l.chroma || [1.08, 1.04, 1.0];
         const spec = l.specular !== false ? 1.0 : 0.0;
 
