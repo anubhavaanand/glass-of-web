@@ -22,7 +22,7 @@ class GlassDisplacementEngine {
     const canvas = targetCanvas || this.offscreenCanvas;
     canvas.width = w;
     canvas.height = h;
-    const ctx = targetCanvas ? canvas.getContext('2d', { willReadFrequently: true }) : this.offscreenCtx;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     const imgData = ctx.createImageData(w, h);
     const data = imgData.data;
     const neutral = 128;
