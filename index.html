@@ -1454,14 +1454,18 @@ footer code{
       })();
     }
 
-    init();
+    try {
+      init();
+    } catch(err) {
+      console.error('Init error:', err);
+    }
   }
 
+  start();
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', start);
-  } else {
-    start();
   }
+  window.addEventListener('load', start);
 })();
 </script>
 </body>
