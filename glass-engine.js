@@ -114,8 +114,17 @@ document.addEventListener('DOMContentLoaded', () => {
   const aaveSwitch = document.getElementById('aaveSwitch');
   if (aaveSwitch) {
     engine.updateFilter('switch-lens-filter', 'feImg-switch', 52, 52, 26, 28);
-    aaveSwitch.addEventListener('click', () => {
+    const toggleSwitch = () => {
       aaveSwitch.classList.toggle('active');
+      const isActive = aaveSwitch.classList.contains('active');
+      aaveSwitch.setAttribute('aria-checked', isActive.toString());
+    };
+    aaveSwitch.addEventListener('click', toggleSwitch);
+    aaveSwitch.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleSwitch();
+      }
     });
   }
 
@@ -219,8 +228,18 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('vCurvature') && (document.getElementById('vCurvature').textContent = `${c.toFixed(1)}`);
   };
 
+  let inspectorQueued = false;
+  const scheduleUpdateInspector = () => {
+    if (inspectorQueued) return;
+    inspectorQueued = true;
+    requestAnimationFrame(() => {
+      inspectorQueued = false;
+      updateInspector();
+    });
+  };
+
   [sWidth, sHeight, sRadius, sScale, sDepth, sCurvature].forEach(inp => {
-    if (inp) inp.addEventListener('input', updateInspector);
+    if (inp) inp.addEventListener('input', scheduleUpdateInspector);
   });
 
   if (inspectorStage && inspectorLens) {
