@@ -12,6 +12,33 @@ const sourceCode = fs.readFileSync(sourcePath, 'utf8');
 let glassEngine;
 let latestImgData = null;
 
+const createMockElement = (tag = 'div') => {
+  return {
+    tagName: tag.toUpperCase(),
+    children: [],
+    style: {},
+    attributes: {},
+    parentNode: null,
+    setAttribute(name, value) {
+      this.attributes[name] = String(value);
+      if (name === 'id') this.id = String(value);
+    },
+    appendChild(child) {
+      child.parentNode = this;
+      this.children.push(child);
+      return child;
+    },
+    removeChild(child) {
+      const idx = this.children.indexOf(child);
+      if (idx >= 0) {
+        this.children.splice(idx, 1);
+        child.parentNode = null;
+      }
+      return child;
+    }
+  };
+};
+
 // Create a mock canvas
 const createMockCanvas = () => {
   return {
@@ -37,8 +64,9 @@ const mockDocument = {
     if (tag === 'canvas') {
       return createMockCanvas();
     }
-    return {};
+    return createMockElement(tag);
   },
+  createElementNS: (_ns, tag) => createMockElement(tag),
   addEventListener: () => {},
   getElementById: () => null,
   querySelectorAll: () => []
@@ -175,6 +203,27 @@ describe('GlassDisplacementEngine', () => {
         assert.strictEqual(data[i+2], 128, `B channel neutral at index ${i}`);
         assert.strictEqual(data[i+3], 255, `Alpha solid at index ${i}`);
       }
+    });
+  });
+
+  describe('createGlass', () => {
+    it('sanitizes container ID before generating filter reference', () => {
+      const container = createMockElement('div');
+      container.id = 'demo-1") ;body{background:red}/*';
+      container.style.filter = 'blur(2px)';
+
+      const glass = glassEngine.createGlass(container, {
+        lens: { x: 0, y: 0, w: 100, h: 60, r: 16 }
+      });
+
+      const filter = container.children[0].children[0].children[0];
+      assert.match(filter.id, /^glass-[a-zA-Z0-9_-]+-\d+-v1$/);
+      assert.strictEqual(container.style.filter, `url("#${filter.id}")`);
+      assert.strictEqual(filter.id.includes('"'), false);
+      assert.strictEqual(filter.id.includes(';'), false);
+
+      glass.destroy();
+      assert.strictEqual(container.style.filter, 'blur(2px)');
     });
   });
 });

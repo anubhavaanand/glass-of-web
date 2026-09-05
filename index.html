@@ -314,12 +314,17 @@
 <script src="glass-engine.js?v=2.1"></script>
 <script>
 (function() {
+  let started = false;
+
   function start() {
     const GE = window.GlassEngine;
     if (!GE) {
       setTimeout(start, 16);
       return;
     }
+    if (started) return;
+    started = true;
+
     const { createGlass, generateMap, createGlassWebGL } = GE;
 
     function tween(from, to, dur, onStep, onDone) {
