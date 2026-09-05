@@ -97,8 +97,17 @@
     const splayAmount = opts.splayAmount ?? 1.0;
 
     const cacheKey = getCacheKey(w, h, borderRadius, depth, curvature, curvaturePow);
-    if (cache.has(cacheKey) && typeof wOrOpts !== 'object') {
-      return cache.get(cacheKey);
+    if (cache.has(cacheKey)) {
+      const cached = cache.get(cacheKey);
+      if (typeof wOrOpts !== 'object') {
+        return cached.dataUrl;
+      }
+      return {
+        canvas: cached.canvas,
+        dataUrl: cached.dataUrl,
+        width: w,
+        height: h
+      };
     }
 
     const c = typeof document !== 'undefined' ? document.createElement('canvas') : null;
@@ -247,7 +256,7 @@
     if (cache.size > 50) {
       cache.delete(cache.keys().next().value);
     }
-    cache.set(cacheKey, dataUrl);
+    cache.set(cacheKey, { dataUrl, canvas: c });
 
     if (typeof wOrOpts !== 'object') {
       return dataUrl;
