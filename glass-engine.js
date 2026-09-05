@@ -56,10 +56,7 @@
     return `${w}_${h}_${radius}_${depth}_${curvature}_${curvaturePow}`;
   }
 
-  /**
-   * Generates a 2D Displacement Map with 4-fold quadrant symmetry
-   */
-  function generateMap(wOrOpts, maybeH, maybeRad, maybeDepth, maybeCurv, maybeCurvPow) {
+  function normalizeMapParams(wOrOpts, maybeH, maybeRad, maybeDepth, maybeCurv, maybeCurvPow) {
     let opts = {};
     if (typeof wOrOpts === 'object' && wOrOpts !== null) {
       opts = wOrOpts;
@@ -95,6 +92,26 @@
     const edgeWidth = opts.edgeWidth ?? 3.0;
     const edgeExponent = opts.edgeExponent ?? 1.5;
     const splayAmount = opts.splayAmount ?? 1.0;
+
+    return {
+      w, h, halfW, halfH, borderRadius, depth, curvature, curvaturePow,
+      edgeFalloff, sdfBoundary, specularRotation, isObj,
+      glowStrength, glowSpread, glowExponent,
+      edgeStrength, edgeWidth, edgeExponent, splayAmount,
+      wOrOpts
+    };
+  }
+
+  /**
+   * Generates a 2D Displacement Map with 4-fold quadrant symmetry
+   */
+  function generateMap(wOrOpts, maybeH, maybeRad, maybeDepth, maybeCurv, maybeCurvPow) {
+    const {
+      w, h, halfW, halfH, borderRadius, depth, curvature, curvaturePow,
+      edgeFalloff, sdfBoundary, specularRotation, isObj,
+      glowStrength, glowSpread, glowExponent,
+      edgeStrength, edgeWidth, edgeExponent, splayAmount
+    } = normalizeMapParams(wOrOpts, maybeH, maybeRad, maybeDepth, maybeCurv, maybeCurvPow);
 
     const cacheKey = getCacheKey(w, h, borderRadius, depth, curvature, curvaturePow);
     if (cache.has(cacheKey)) {
