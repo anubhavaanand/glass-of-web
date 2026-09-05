@@ -269,12 +269,25 @@
   function buildFilter(filter, opts) {
     while (filter.firstChild) filter.removeChild(filter.firstChild);
 
-    filter.setAttribute('filterUnits', 'userSpaceOnUse');
-    filter.setAttribute('primitiveUnits', 'userSpaceOnUse');
-    filter.setAttribute('x', '0');
-    filter.setAttribute('y', '0');
-    filter.setAttribute('width', '100%');
-    filter.setAttribute('height', '100%');
+    function setAttrs(el, attrs) {
+      for (const k in attrs) el.setAttribute(k, attrs[k]);
+    }
+
+    function appendNode(name, attrs) {
+      const el = svgEl(name);
+      setAttrs(el, attrs);
+      filter.appendChild(el);
+      return el;
+    }
+
+    setAttrs(filter, {
+      filterUnits: 'userSpaceOnUse',
+      primitiveUnits: 'userSpaceOnUse',
+      x: '0',
+      y: '0',
+      width: '100%',
+      height: '100%'
+    });
 
     const px = opts.pixelLens;
     const mapHref = opts.mapDataUrl;
@@ -282,22 +295,22 @@
     const chroma = opts.chroma || [1.08, 1.04, 1.0];
     const blurPx = opts.blurPx ?? 0;
 
-    const feImg = svgEl('feImage');
-    feImg.setAttribute('href', mapHref);
-    feImg.setAttribute('x', String(px.x));
-    feImg.setAttribute('y', String(px.y));
-    feImg.setAttribute('width', String(px.w));
-    feImg.setAttribute('height', String(px.h));
-    feImg.setAttribute('result', 'map');
-    filter.appendChild(feImg);
+    appendNode('feImage', {
+      href: mapHref,
+      x: String(px.x),
+      y: String(px.y),
+      width: String(px.w),
+      height: String(px.h),
+      result: 'map'
+    });
 
     let currentSrc = 'SourceGraphic';
     if (blurPx > 0) {
-      const feBlur = svgEl('feGaussianBlur');
-      feBlur.setAttribute('in', 'SourceGraphic');
-      feBlur.setAttribute('stdDeviation', String(blurPx));
-      feBlur.setAttribute('result', 'blurred');
-      filter.appendChild(feBlur);
+      appendNode('feGaussianBlur', {
+        in: 'SourceGraphic',
+        stdDeviation: String(blurPx),
+        result: 'blurred'
+      });
       currentSrc = 'blurred';
     }
 
@@ -308,69 +321,69 @@
     ];
 
     channels.forEach(ch => {
-      const feDisp = svgEl('feDisplacementMap');
-      feDisp.setAttribute('in', currentSrc);
-      feDisp.setAttribute('in2', 'map');
-      feDisp.setAttribute('scale', String(scale * ch.scaleMul));
-      feDisp.setAttribute('xChannelSelector', 'R');
-      feDisp.setAttribute('yChannelSelector', 'G');
-      filter.appendChild(feDisp);
+      appendNode('feDisplacementMap', {
+        in: currentSrc,
+        in2: 'map',
+        scale: String(scale * ch.scaleMul),
+        xChannelSelector: 'R',
+        yChannelSelector: 'G'
+      });
 
-      const feMat = svgEl('feColorMatrix');
-      feMat.setAttribute('type', 'matrix');
-      feMat.setAttribute('values', ch.mat);
-      feMat.setAttribute('result', ch.name);
-      filter.appendChild(feMat);
+      appendNode('feColorMatrix', {
+        type: 'matrix',
+        values: ch.mat,
+        result: ch.name
+      });
     });
 
-    const feCompRG = svgEl('feComposite');
-    feCompRG.setAttribute('in', 'dispR');
-    feCompRG.setAttribute('in2', 'dispG');
-    feCompRG.setAttribute('operator', 'arithmetic');
-    feCompRG.setAttribute('k1', '0');
-    feCompRG.setAttribute('k2', '1');
-    feCompRG.setAttribute('k3', '1');
-    feCompRG.setAttribute('k4', '0');
-    filter.appendChild(feCompRG);
+    appendNode('feComposite', {
+      in: 'dispR',
+      in2: 'dispG',
+      operator: 'arithmetic',
+      k1: '0',
+      k2: '1',
+      k3: '1',
+      k4: '0'
+    });
 
-    const feCompRGB = svgEl('feComposite');
-    feCompRGB.setAttribute('in2', 'dispB');
-    feCompRGB.setAttribute('operator', 'arithmetic');
-    feCompRGB.setAttribute('k1', '0');
-    feCompRGB.setAttribute('k2', '1');
-    feCompRGB.setAttribute('k3', '1');
-    feCompRGB.setAttribute('k4', '0');
-    feCompRGB.setAttribute('result', 'lensResult');
-    filter.appendChild(feCompRGB);
+    appendNode('feComposite', {
+      in2: 'dispB',
+      operator: 'arithmetic',
+      k1: '0',
+      k2: '1',
+      k3: '1',
+      k4: '0',
+      result: 'lensResult'
+    });
 
-    const feFlood = svgEl('feFlood');
-    feFlood.setAttribute('x', String(px.x));
-    feFlood.setAttribute('y', String(px.y));
-    feFlood.setAttribute('width', String(px.w));
-    feFlood.setAttribute('height', String(px.h));
-    feFlood.setAttribute('flood-color', '#fff');
-    feFlood.setAttribute('result', 'lensMask');
-    filter.appendChild(feFlood);
+    appendNode('feFlood', {
+      x: String(px.x),
+      y: String(px.y),
+      width: String(px.w),
+      height: String(px.h),
+      'flood-color': '#fff',
+      result: 'lensMask'
+    });
 
-    const feMaskedLens = svgEl('feComposite');
-    feMaskedLens.setAttribute('in', 'lensResult');
-    feMaskedLens.setAttribute('in2', 'lensMask');
-    feMaskedLens.setAttribute('operator', 'in');
-    feMaskedLens.setAttribute('result', 'clippedLens');
-    filter.appendChild(feMaskedLens);
+    appendNode('feComposite', {
+      in: 'lensResult',
+      in2: 'lensMask',
+      operator: 'in',
+      result: 'clippedLens'
+    });
 
-    const feHole = svgEl('feComposite');
-    feHole.setAttribute('in', 'SourceGraphic');
-    feHole.setAttribute('in2', 'lensMask');
-    feHole.setAttribute('operator', 'out');
-    feHole.setAttribute('result', 'holedBackground');
-    filter.appendChild(feHole);
+    appendNode('feComposite', {
+      in: 'SourceGraphic',
+      in2: 'lensMask',
+      operator: 'out',
+      result: 'holedBackground'
+    });
 
-    const feFinal = svgEl('feComposite');
-    feFinal.setAttribute('in', 'clippedLens');
-    feFinal.setAttribute('in2', 'holedBackground');
-    feFinal.setAttribute('operator', 'over');
-    filter.appendChild(feFinal);
+    appendNode('feComposite', {
+      in: 'clippedLens',
+      in2: 'holedBackground',
+      operator: 'over'
+    });
   }
 
   function applySpecular(lensEl, r, glowStrength = 0.3) {
