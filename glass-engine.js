@@ -153,6 +153,10 @@
         const idxBL = (mirrorY * w + px) * 4;
         const idxBR = (mirrorY * w + mirrorX) * 4;
 
+        const setPixel = (idx, r, g, b) => {
+          data[idx] = r; data[idx + 1] = g; data[idx + 2] = b; data[idx + 3] = 255;
+        };
+
         if (!sdfBoundary || dist < 0) {
           let normX = posX * invHalfW > 1 ? 1 : posX * invHalfW;
           let dispX = normX;
@@ -213,30 +217,15 @@
             blueVal = clamp(127 * specL + 128);
           }
 
-          data[idxTL]     = rPos;
-          data[idxTL + 1] = gPos;
-          data[idxTL + 2] = blueVal;
-          data[idxTL + 3] = 255;
-
-          data[idxTR]     = rNeg;
-          data[idxTR + 1] = gPos;
-          data[idxTR + 2] = blueVal;
-          data[idxTR + 3] = 255;
-
-          data[idxBL]     = rPos;
-          data[idxBL + 1] = gNeg;
-          data[idxBL + 2] = blueVal;
-          data[idxBL + 3] = 255;
-
-          data[idxBR]     = rNeg;
-          data[idxBR + 1] = gNeg;
-          data[idxBR + 2] = blueVal;
-          data[idxBR + 3] = 255;
+          setPixel(idxTL, rPos, gPos, blueVal);
+          setPixel(idxTR, rNeg, gPos, blueVal);
+          setPixel(idxBL, rPos, gNeg, blueVal);
+          setPixel(idxBR, rNeg, gNeg, blueVal);
         } else {
-          data[idxTL] = 128; data[idxTL + 1] = 128; data[idxTL + 2] = 128; data[idxTL + 3] = 255;
-          data[idxTR] = 128; data[idxTR + 1] = 128; data[idxTR + 2] = 128; data[idxTR + 3] = 255;
-          data[idxBL] = 128; data[idxBL + 1] = 128; data[idxBL + 2] = 128; data[idxBL + 3] = 255;
-          data[idxBR] = 128; data[idxBR + 1] = 128; data[idxBR + 2] = 128; data[idxBR + 3] = 255;
+          setPixel(idxTL, 128, 128, 128);
+          setPixel(idxTR, 128, 128, 128);
+          setPixel(idxBL, 128, 128, 128);
+          setPixel(idxBR, 128, 128, 128);
         }
       }
     }
