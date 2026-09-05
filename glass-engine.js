@@ -635,6 +635,16 @@
       return tex;
     }
 
+    function updateSourceTexture(gl, source) {
+      if (source instanceof HTMLVideoElement) {
+        if (source.readyState >= 2) {
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+        }
+      } else if (source instanceof HTMLCanvasElement || source instanceof Image) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+      }
+    }
+
     return {
       setLenses(lenses) {
         lensesList = lenses;
@@ -649,13 +659,7 @@
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, srcTex);
-        if (source instanceof HTMLVideoElement) {
-          if (source.readyState >= 2) {
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
-          }
-        } else if (source instanceof HTMLCanvasElement || source instanceof Image) {
-          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
-        }
+        updateSourceTexture(gl, source);
 
         if (!lensesList.length) {
           gl.uniform4f(uLens, -1, -1, 0, 0);
