@@ -177,4 +177,25 @@ describe('GlassDisplacementEngine', () => {
       }
     });
   });
+
+  describe('cachedMap', () => {
+    it('returns expected object shape when called with options object', () => {
+      const result = glassEngine.cachedMap({ w: 64, h: 64, radius: 32, depth: 10, curvature: 1.0, curvaturePow: 1.0 });
+      assert.ok(result.canvas, 'Should have a canvas object');
+      assert.strictEqual(typeof result.dataUrl, 'string', 'Should have a string dataUrl');
+      assert.strictEqual(result.width, 64, 'Should have width 64');
+      assert.strictEqual(result.height, 64, 'Should have height 64');
+    });
+
+    it('normalizes string return from generateMap into object shape', () => {
+      // Calling generateMap(64) directly triggers the string return path.
+      // cachedMap(64) will pass 64 to generateMap, receive a string, and normalize it.
+      const result = glassEngine.cachedMap(64);
+      assert.strictEqual(result.canvas, null, 'Canvas should be null when returning cached string');
+      assert.strictEqual(typeof result.dataUrl, 'string', 'Should have a string dataUrl');
+      // width and height are from opts.w and opts.h which are undefined for a number argument
+      assert.strictEqual(result.width, undefined, 'Width should be undefined for number arg');
+      assert.strictEqual(result.height, undefined, 'Height should be undefined for number arg');
+    });
+  });
 });
