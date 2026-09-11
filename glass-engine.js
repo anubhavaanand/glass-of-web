@@ -56,10 +56,7 @@
     return `${w}_${h}_${radius}_${depth}_${curvature}_${curvaturePow}`;
   }
 
-  /**
-   * Generates a 2D Displacement Map with 4-fold quadrant symmetry
-   */
-  function generateMap(wOrOpts, maybeH, maybeRad, maybeDepth, maybeCurv, maybeCurvPow) {
+  function normalizeMapParams(wOrOpts, maybeH, maybeRad, maybeDepth, maybeCurv, maybeCurvPow) {
     let opts = {};
     if (typeof wOrOpts === 'object' && wOrOpts !== null) {
       opts = wOrOpts;
@@ -96,9 +93,38 @@
     const edgeExponent = opts.edgeExponent ?? 1.5;
     const splayAmount = opts.splayAmount ?? 1.0;
 
+    return {
+      w, h, halfW, halfH, borderRadius, depth, curvature, curvaturePow,
+      edgeFalloff, sdfBoundary, specularRotation, isObj,
+      glowStrength, glowSpread, glowExponent,
+      edgeStrength, edgeWidth, edgeExponent, splayAmount,
+      wOrOpts
+    };
+  }
+
+  /**
+   * Generates a 2D Displacement Map with 4-fold quadrant symmetry
+   */
+  function generateMap(wOrOpts, maybeH, maybeRad, maybeDepth, maybeCurv, maybeCurvPow) {
+    const {
+      w, h, halfW, halfH, borderRadius, depth, curvature, curvaturePow,
+      edgeFalloff, sdfBoundary, specularRotation, isObj,
+      glowStrength, glowSpread, glowExponent,
+      edgeStrength, edgeWidth, edgeExponent, splayAmount
+    } = normalizeMapParams(wOrOpts, maybeH, maybeRad, maybeDepth, maybeCurv, maybeCurvPow);
+
     const cacheKey = getCacheKey(w, h, borderRadius, depth, curvature, curvaturePow);
-    if (cache.has(cacheKey) && typeof wOrOpts !== 'object') {
-      return cache.get(cacheKey);
+    if (cache.has(cacheKey)) {
+      const cached = cache.get(cacheKey);
+      if (typeof wOrOpts !== 'object') {
+        return cached.dataUrl;
+      }
+      return {
+        canvas: cached.canvas,
+        dataUrl: cached.dataUrl,
+        width: w,
+        height: h
+      };
     }
 
     const c = typeof document !== 'undefined' ? document.createElement('canvas') : null;
@@ -152,6 +178,10 @@
         const idxTR = (py * w + mirrorX) * 4;
         const idxBL = (mirrorY * w + px) * 4;
         const idxBR = (mirrorY * w + mirrorX) * 4;
+
+        const setPixel = (idx, r, g, b) => {
+          data[idx] = r; data[idx + 1] = g; data[idx + 2] = b; data[idx + 3] = 255;
+        };
 
         if (!sdfBoundary || dist < 0) {
           let normX = posX * invHalfW > 1 ? 1 : posX * invHalfW;
@@ -213,30 +243,15 @@
             blueVal = clamp(127 * specL + 128);
           }
 
-          data[idxTL]     = rPos;
-          data[idxTL + 1] = gPos;
-          data[idxTL + 2] = blueVal;
-          data[idxTL + 3] = 255;
-
-          data[idxTR]     = rNeg;
-          data[idxTR + 1] = gPos;
-          data[idxTR + 2] = blueVal;
-          data[idxTR + 3] = 255;
-
-          data[idxBL]     = rPos;
-          data[idxBL + 1] = gNeg;
-          data[idxBL + 2] = blueVal;
-          data[idxBL + 3] = 255;
-
-          data[idxBR]     = rNeg;
-          data[idxBR + 1] = gNeg;
-          data[idxBR + 2] = blueVal;
-          data[idxBR + 3] = 255;
+          setPixel(idxTL, rPos, gPos, blueVal);
+          setPixel(idxTR, rNeg, gPos, blueVal);
+          setPixel(idxBL, rPos, gNeg, blueVal);
+          setPixel(idxBR, rNeg, gNeg, blueVal);
         } else {
-          data[idxTL] = 128; data[idxTL + 1] = 128; data[idxTL + 2] = 128; data[idxTL + 3] = 255;
-          data[idxTR] = 128; data[idxTR + 1] = 128; data[idxTR + 2] = 128; data[idxTR + 3] = 255;
-          data[idxBL] = 128; data[idxBL + 1] = 128; data[idxBL + 2] = 128; data[idxBL + 3] = 255;
-          data[idxBR] = 128; data[idxBR + 1] = 128; data[idxBR + 2] = 128; data[idxBR + 3] = 255;
+          setPixel(idxTL, 128, 128, 128);
+          setPixel(idxTR, 128, 128, 128);
+          setPixel(idxBL, 128, 128, 128);
+          setPixel(idxBR, 128, 128, 128);
         }
       }
     }
@@ -247,7 +262,7 @@
     if (cache.size > 50) {
       cache.delete(cache.keys().next().value);
     }
-    cache.set(cacheKey, dataUrl);
+    cache.set(cacheKey, { dataUrl, canvas: c });
 
     if (typeof wOrOpts !== 'object') {
       return dataUrl;
@@ -269,12 +284,25 @@
   function buildFilter(filter, opts) {
     while (filter.firstChild) filter.removeChild(filter.firstChild);
 
-    filter.setAttribute('filterUnits', 'userSpaceOnUse');
-    filter.setAttribute('primitiveUnits', 'userSpaceOnUse');
-    filter.setAttribute('x', '0');
-    filter.setAttribute('y', '0');
-    filter.setAttribute('width', '100%');
-    filter.setAttribute('height', '100%');
+    function setAttrs(el, attrs) {
+      for (const k in attrs) el.setAttribute(k, attrs[k]);
+    }
+
+    function appendNode(name, attrs) {
+      const el = svgEl(name);
+      setAttrs(el, attrs);
+      filter.appendChild(el);
+      return el;
+    }
+
+    setAttrs(filter, {
+      filterUnits: 'userSpaceOnUse',
+      primitiveUnits: 'userSpaceOnUse',
+      x: '0',
+      y: '0',
+      width: '100%',
+      height: '100%'
+    });
 
     const px = opts.pixelLens;
     const mapHref = opts.mapDataUrl;
@@ -282,22 +310,22 @@
     const chroma = opts.chroma || [1.08, 1.04, 1.0];
     const blurPx = opts.blurPx ?? 0;
 
-    const feImg = svgEl('feImage');
-    feImg.setAttribute('href', mapHref);
-    feImg.setAttribute('x', String(px.x));
-    feImg.setAttribute('y', String(px.y));
-    feImg.setAttribute('width', String(px.w));
-    feImg.setAttribute('height', String(px.h));
-    feImg.setAttribute('result', 'map');
-    filter.appendChild(feImg);
+    appendNode('feImage', {
+      href: mapHref,
+      x: String(px.x),
+      y: String(px.y),
+      width: String(px.w),
+      height: String(px.h),
+      result: 'map'
+    });
 
     let currentSrc = 'SourceGraphic';
     if (blurPx > 0) {
-      const feBlur = svgEl('feGaussianBlur');
-      feBlur.setAttribute('in', 'SourceGraphic');
-      feBlur.setAttribute('stdDeviation', String(blurPx));
-      feBlur.setAttribute('result', 'blurred');
-      filter.appendChild(feBlur);
+      appendNode('feGaussianBlur', {
+        in: 'SourceGraphic',
+        stdDeviation: String(blurPx),
+        result: 'blurred'
+      });
       currentSrc = 'blurred';
     }
 
@@ -308,69 +336,69 @@
     ];
 
     channels.forEach(ch => {
-      const feDisp = svgEl('feDisplacementMap');
-      feDisp.setAttribute('in', currentSrc);
-      feDisp.setAttribute('in2', 'map');
-      feDisp.setAttribute('scale', String(scale * ch.scaleMul));
-      feDisp.setAttribute('xChannelSelector', 'R');
-      feDisp.setAttribute('yChannelSelector', 'G');
-      filter.appendChild(feDisp);
+      appendNode('feDisplacementMap', {
+        in: currentSrc,
+        in2: 'map',
+        scale: String(scale * ch.scaleMul),
+        xChannelSelector: 'R',
+        yChannelSelector: 'G'
+      });
 
-      const feMat = svgEl('feColorMatrix');
-      feMat.setAttribute('type', 'matrix');
-      feMat.setAttribute('values', ch.mat);
-      feMat.setAttribute('result', ch.name);
-      filter.appendChild(feMat);
+      appendNode('feColorMatrix', {
+        type: 'matrix',
+        values: ch.mat,
+        result: ch.name
+      });
     });
 
-    const feCompRG = svgEl('feComposite');
-    feCompRG.setAttribute('in', 'dispR');
-    feCompRG.setAttribute('in2', 'dispG');
-    feCompRG.setAttribute('operator', 'arithmetic');
-    feCompRG.setAttribute('k1', '0');
-    feCompRG.setAttribute('k2', '1');
-    feCompRG.setAttribute('k3', '1');
-    feCompRG.setAttribute('k4', '0');
-    filter.appendChild(feCompRG);
+    appendNode('feComposite', {
+      in: 'dispR',
+      in2: 'dispG',
+      operator: 'arithmetic',
+      k1: '0',
+      k2: '1',
+      k3: '1',
+      k4: '0'
+    });
 
-    const feCompRGB = svgEl('feComposite');
-    feCompRGB.setAttribute('in2', 'dispB');
-    feCompRGB.setAttribute('operator', 'arithmetic');
-    feCompRGB.setAttribute('k1', '0');
-    feCompRGB.setAttribute('k2', '1');
-    feCompRGB.setAttribute('k3', '1');
-    feCompRGB.setAttribute('k4', '0');
-    feCompRGB.setAttribute('result', 'lensResult');
-    filter.appendChild(feCompRGB);
+    appendNode('feComposite', {
+      in2: 'dispB',
+      operator: 'arithmetic',
+      k1: '0',
+      k2: '1',
+      k3: '1',
+      k4: '0',
+      result: 'lensResult'
+    });
 
-    const feFlood = svgEl('feFlood');
-    feFlood.setAttribute('x', String(px.x));
-    feFlood.setAttribute('y', String(px.y));
-    feFlood.setAttribute('width', String(px.w));
-    feFlood.setAttribute('height', String(px.h));
-    feFlood.setAttribute('flood-color', '#fff');
-    feFlood.setAttribute('result', 'lensMask');
-    filter.appendChild(feFlood);
+    appendNode('feFlood', {
+      x: String(px.x),
+      y: String(px.y),
+      width: String(px.w),
+      height: String(px.h),
+      'flood-color': '#fff',
+      result: 'lensMask'
+    });
 
-    const feMaskedLens = svgEl('feComposite');
-    feMaskedLens.setAttribute('in', 'lensResult');
-    feMaskedLens.setAttribute('in2', 'lensMask');
-    feMaskedLens.setAttribute('operator', 'in');
-    feMaskedLens.setAttribute('result', 'clippedLens');
-    filter.appendChild(feMaskedLens);
+    appendNode('feComposite', {
+      in: 'lensResult',
+      in2: 'lensMask',
+      operator: 'in',
+      result: 'clippedLens'
+    });
 
-    const feHole = svgEl('feComposite');
-    feHole.setAttribute('in', 'SourceGraphic');
-    feHole.setAttribute('in2', 'lensMask');
-    feHole.setAttribute('operator', 'out');
-    feHole.setAttribute('result', 'holedBackground');
-    filter.appendChild(feHole);
+    appendNode('feComposite', {
+      in: 'SourceGraphic',
+      in2: 'lensMask',
+      operator: 'out',
+      result: 'holedBackground'
+    });
 
-    const feFinal = svgEl('feComposite');
-    feFinal.setAttribute('in', 'clippedLens');
-    feFinal.setAttribute('in2', 'holedBackground');
-    feFinal.setAttribute('operator', 'over');
-    filter.appendChild(feFinal);
+    appendNode('feComposite', {
+      in: 'clippedLens',
+      in2: 'holedBackground',
+      operator: 'over'
+    });
   }
 
   function applySpecular(lensEl, r, glowStrength = 0.3) {
@@ -607,6 +635,16 @@
       return tex;
     }
 
+    function updateSourceTexture(gl, source) {
+      if (source instanceof HTMLVideoElement) {
+        if (source.readyState >= 2) {
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+        }
+      } else if (source instanceof HTMLCanvasElement || source instanceof Image) {
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
+      }
+    }
+
     return {
       setLenses(lenses) {
         lensesList = lenses;
@@ -621,13 +659,7 @@
 
         gl.activeTexture(gl.TEXTURE0);
         gl.bindTexture(gl.TEXTURE_2D, srcTex);
-        if (source instanceof HTMLVideoElement) {
-          if (source.readyState >= 2) {
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
-          }
-        } else if (source instanceof HTMLCanvasElement || source instanceof Image) {
-          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
-        }
+        updateSourceTexture(gl, source);
 
         if (!lensesList.length) {
           gl.uniform4f(uLens, -1, -1, 0, 0);
