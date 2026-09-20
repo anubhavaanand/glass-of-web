@@ -10,8 +10,12 @@ class GlassDisplacementEngine {
     this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
   }
 
-  getCacheKey(w, h, r, scale, depth = 1.0, curvature = 1.0) {
-    return `${w}_${h}_${r}_${scale}_${depth}_${curvature}`;
+  getCacheKey(...args) {
+    if (args.length === 1 && typeof args[0] === 'object' && args[0] !== null) {
+      return JSON.stringify(args[0]);
+    } else {
+      return args.join('_');
+    }
   }
 
   generateMap(width, height, radius, scale = 40, depth = 1.0, curvature = 1.0) {
@@ -35,7 +39,9 @@ class GlassDisplacementEngine {
       for (let x = 0; x < halfW; x++) {
         const qx = Math.abs(x - w / 2) - (w / 2 - r);
         const qy = Math.abs(y - h / 2) - (h / 2 - r);
-        const dist = Math.min(Math.max(qx, qy), 0) + Math.hypot(Math.max(qx, 0), Math.max(qy, 0)) - r;
+        const maxQx = Math.max(qx, 0);
+        const maxQy = Math.max(qy, 0);
+        const dist = Math.min(Math.max(qx, qy), 0) + Math.sqrt(maxQx * maxQx + maxQy * maxQy) - r;
 
         let nx = 0, ny = 0;
         if (dist < 0) {
@@ -44,7 +50,7 @@ class GlassDisplacementEngine {
 
           if (qx > 0 && qy > 0) {
             const angle = Math.atan2(localY, localX);
-            const cornerDist = Math.hypot(localX, localY);
+            const cornerDist = Math.sqrt(localX * localX + localY * localY);
             const falloff = Math.pow(Math.min(1, cornerDist), curvature);
             nx = Math.cos(angle) * falloff;
             ny = Math.sin(angle) * falloff;
@@ -106,6 +112,10 @@ class GlassDisplacementEngine {
 
 const glassEngine = new GlassDisplacementEngine();
 
+function createSafeId(id) {
+  return (id || 'lens').replace(/[^a-zA-Z0-9_-]/g, '');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   // 1. Hero Lens
   const heroStage = document.getElementById('heroStage');
@@ -113,6 +123,8 @@ document.addEventListener('DOMContentLoaded', () => {
   const refractedHeroLayer = document.getElementById('refractedHeroLayer');
   if (heroStage && heroLens && refractedHeroLayer) {
     const w = 200, h = 90, r = 45;
+    const safeId = createSafeId(heroStage.id);
+
     glassEngine.updateFilter('hero-filter', 'feImg-hero', w, h, r, 42, 1.0, 1.2);
     let targetX = heroStage.clientWidth / 2, targetY = heroStage.clientHeight / 2;
     let currX = targetX, currY = targetY;
