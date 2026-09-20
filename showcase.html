@@ -20,7 +20,7 @@
       <span class="badge"><span class="badge-dot"></span>AAVE LABS · DESIGN CASE STUDY</span>
       <span class="badge-sub">CROSS-BROWSER DOM & WEBGL REFRACTION</span>
     </div>
-
+    
     <div class="title-stage-wrapper">
       <div id="titleStage" class="title-stage">
         <h1 class="headline">Building <span class="accent-text">Glass</span> for the Web</h1>
@@ -62,7 +62,7 @@
 
     <!-- COMPONENT GRID -->
     <div class="components-grid">
-
+      
       <!-- 1. SWITCH -->
       <div class="card component-card">
         <div class="card-header">
@@ -384,7 +384,7 @@
       (function initHero() {
         const stage = document.getElementById('heroStage');
         if (!stage) return;
-
+        
         const driftLens = createGlass(stage, {
           lens: { x: 0, y: 0, w: 220, h: 220, r: 110 },
           scale: 16, depth: 127, curvature: 0.7, curvaturePow: 2.0, glowStrength: 0.35, edgeStrength: 0.25
@@ -416,7 +416,7 @@
         const refract = document.getElementById('swRefract');
         if (!root || !refract) return;
         let on = false;
-
+        
         const g = createGlass(root, {
           refractionTarget: refract,
           lens: { x: 6, y: 6, w: 48, h: 48, r: 24 },
@@ -500,7 +500,7 @@
         hl.style.width = initRect.w + 'px';
         refractPill.style.left = initRect.x + 'px';
         refractPill.style.width = initRect.w + 'px';
-
+        
         const g = createGlass(root, {
           refractionTarget: refractPill,
           lens: initRect,
@@ -698,7 +698,7 @@
         function drawProceduralScene(t) {
           pctx.fillStyle = '#090814';
           pctx.fillRect(0, 0, 800, 450);
-
+          
           const time = t / 1000;
           for (let i = 0; i < 5; i++) {
             const cx = 400 + Math.sin(time + i) * 220;
