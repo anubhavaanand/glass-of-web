@@ -32,13 +32,6 @@ body {
   justify-content: center;
 }
 
-.svg-filters-root {
-  position: absolute;
-  width: 0;
-  height: 0;
-  pointer-events: none;
-}
-
 .article-wrapper {
   width: 100%;
   max-width: 820px;
@@ -281,7 +274,6 @@ body {
   inset: 0;
   border-radius: 26px;
   overflow: hidden;
-  filter: url(#switch-lens-filter);
 }
 
 .switch-track-refracted {
@@ -358,7 +350,6 @@ body {
   inset: 0;
   border-radius: 30px;
   overflow: hidden;
-  filter: url(#slider-lens-filter);
 }
 
 .slider-fill-duplicate {
@@ -429,7 +420,6 @@ body {
   inset: 0;
   border-radius: 18px;
   overflow: hidden;
-  filter: url(#toggle-lens-filter);
 }
 
 .toggle-options-duplicate {
@@ -544,7 +534,6 @@ body {
   inset: 0;
   border-radius: inherit;
   overflow: hidden;
-  filter: url(#inspector-lens-filter);
 }
 
 .inspector-content-refracted {

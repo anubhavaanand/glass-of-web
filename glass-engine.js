@@ -1,36 +1,61 @@
 /**
- * Aave Glass Web Engine — Optical Refraction Engine
- * Implements 2D Signed Distance Fields, 4-Fold Symmetry, and Realtime Normal Mapping.
+ * Liquid Glass Engine — Aave Labs "Building Glass for the Web" Reference Implementation
+ *
+ * Architecture:
+ *   - Exact 2D Signed Distance Field (SDF) rounded-rectangle normals
+ *   - Error function (erf) smooth edge falloff: 0.5 * (1 + erf(d * scale))
+ *   - 4-Fold Quadrant Symmetry: 4x speedup computing top-left quadrant and mirroring
+ *   - 17-primitive SVG filter pipeline with 3-channel chromatic split (dispR, dispG, dispB)
+ *   - Full parameter schema: lensHalfWidth, lensHalfHeight, borderRadius, depth, glowStrength,
+ *     glowSpread, glowExponent, edgeStrength, edgeWidth, edgeExponent, specularRotation, splayAmount
+ *   - Distinct refractionTarget support (e.g. track fill or selection indicator pill)
+ *   - Dynamic fresh filter IDs per frame for Safari cache-busting
+ *   - WebGL 2 / WebGL GLSL multi-lens refraction for canvas and live video
  */
 
-class GlassDisplacementEngine {
-  constructor() {
-    this.cache = new Map();
-    this.offscreenCanvas = document.createElement('canvas');
-    this.offscreenCtx = this.offscreenCanvas.getContext('2d', { willReadFrequently: true });
+(function(root, factory) {
+  const engine = factory();
+  if (typeof define === 'function' && define.amd) {
+    define([], () => engine);
+  } else if (typeof module === 'object' && module.exports) {
+    module.exports = engine;
+  }
+  if (typeof root !== 'undefined') {
+    root.GlassEngine = engine;
+    root.glassEngine = engine;
+  }
+  if (typeof window !== 'undefined') {
+    window.GlassEngine = engine;
+    window.glassEngine = engine;
+  }
+})(typeof self !== 'undefined' ? self : (typeof globalThis !== 'undefined' ? globalThis : this), function() {
+  'use strict';
+
+  const SVG_NS = 'http://www.w3.org/2000/svg';
+  let _seq = 0;
+  const cache = new Map();
+
+  function svgEl(name) {
+    return document.createElementNS(SVG_NS, name);
   }
 
-  getCacheKey(w, h, r, scale, depth, curvature) {
-    return `${w}_${h}_${r}_${scale}_${depth}_${curvature}`;
+  function erf(x) {
+    const sign = x < 0 ? -1 : 1;
+    const absX = Math.abs(x);
+    const a1 = 0.254829592, a2 = -0.284496736, a3 = 1.421413741, a4 = -1.453152027, a5 = 1.061405429, p = 0.3275911;
+    const t = 1.0 / (1.0 + p * absX);
+    const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-absX * absX);
+    return sign * y;
   }
 
-  generateMap(width, height, radius, scale = 35, depth = 1.0, curvature = 1.2, targetCanvas = null) {
-    const w = Math.max(8, Math.round(width));
-    const h = Math.max(8, Math.round(height));
-    const r = Math.max(0, Math.min(radius, Math.min(w, h) / 2));
+  function clamp(v, min = 0, max = 255) {
+    return v <= min ? min : v >= max ? max : (v + 0.5) | 0;
+  }
 
-    const canvas = targetCanvas || this.offscreenCanvas;
-    canvas.width = w;
-    canvas.height = h;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    const imgData = ctx.createImageData(w, h);
-    const data = imgData.data;
-    const neutral = 128;
+  function getCacheKey(w, h, radius, depth, curvature, curvaturePow) {
+    return `${w}_${h}_${radius}_${depth}_${curvature}_${curvaturePow}`;
+  }
 
-<<<<<<< HEAD
-    const halfW = Math.ceil(w / 2);
-    const halfH = Math.ceil(h / 2);
-=======
   function normalizeMapParams(wOrOpts, maybeH, maybeRad, maybeDepth, maybeCurv, maybeCurvPow) {
     let opts = {};
     if (typeof wOrOpts === 'object' && wOrOpts !== null) {
@@ -45,36 +70,19 @@ class GlassDisplacementEngine {
         curvaturePow: maybeCurvPow
       };
     }
->>>>>>> origin/main
 
-    for (let y = 0; y < halfH; y++) {
-      for (let x = 0; x < halfW; x++) {
-        const qx = Math.abs(x - w / 2) - (w / 2 - r);
-        const qy = Math.abs(y - h / 2) - (h / 2 - r);
-        const maxQx = Math.max(qx, 0);
-        const maxQy = Math.max(qy, 0);
-        const dist = Math.min(Math.max(qx, qy), 0) + Math.sqrt(maxQx * maxQx + maxQy * maxQy) - r;
+    const w = Math.round(opts.w || (opts.lensHalfWidth ? opts.lensHalfWidth * 2 : 256));
+    const h = Math.round(opts.h || (opts.lensHalfHeight ? opts.lensHalfHeight * 2 : w));
+    const halfW = w / 2;
+    const halfH = h / 2;
 
-        let nx = 0, ny = 0;
-        if (dist < 0) {
-          const localX = (x - (w / 2 - r)) / (r || 1);
-          const localY = (y - (h / 2 - r)) / (r || 1);
+    const borderRadius = opts.borderRadius ?? opts.radius ?? Math.min(halfW, halfH);
+    const depth = opts.depth ?? 127;
+    const curvature = opts.curvature ?? opts.rimStart ?? 0.7;
+    const curvaturePow = opts.curvaturePow ?? opts.rimPow ?? (opts.splayAmount ? 0.1 + opts.splayAmount * 2.9 : 2.0);
+    const edgeFalloff = opts.edgeFalloff !== false;
+    const sdfBoundary = opts.sdfBoundary !== false;
 
-<<<<<<< HEAD
-          if (qx > 0 && qy > 0) {
-            const angle = Math.atan2(localY, localX);
-            const cornerDist = Math.sqrt(localX * localX + localY * localY);
-            const falloff = Math.pow(Math.min(1, cornerDist), curvature);
-            nx = Math.cos(angle) * falloff;
-            ny = Math.sin(angle) * falloff;
-          } else if (qx > 0) {
-            nx = (x - w / 2 < 0 ? -1 : 1) * Math.pow(Math.min(1, (r - x) / (r || 1)), curvature);
-          } else if (qy > 0) {
-            ny = (y - h / 2 < 0 ? -1 : 1) * Math.pow(Math.min(1, (r - y) / (r || 1)), curvature);
-          } else {
-            nx = ((x - w / 2) / (w / 2)) * depth * 0.4;
-            ny = ((y - h / 2) / (h / 2)) * depth * 0.4;
-=======
     const specularRotation = (opts.specularRotation ?? opts.angle ?? 45) * Math.PI / 180;
     const isObj = typeof wOrOpts === 'object' && wOrOpts !== null;
     const glowStrength = opts.glowStrength ?? (opts.glowSide ? opts.glowSide / 100 : (isObj ? 0.3 : 0));
@@ -194,35 +202,18 @@ class GlassDisplacementEngine {
               dispX *= renorm;
               dispY *= renorm;
             }
->>>>>>> origin/main
           }
-        }
 
-        const deltaX = nx * scale;
-        const deltaY = ny * scale;
-
-        const quadrants = [
-          { px: x, py: y, dx: deltaX, dy: deltaY },
-          { px: w - 1 - x, py: y, dx: -deltaX, dy: deltaY },
-          { px: x, py: h - 1 - y, dx: deltaX, dy: -deltaY },
-          { px: w - 1 - x, py: h - 1 - y, dx: -deltaX, dy: -deltaY }
-        ];
-
-        for (const q of quadrants) {
-          if (q.px >= 0 && q.px < w && q.py >= 0 && q.py < h) {
-            const idx = (q.py * w + q.px) * 4;
-
-            const rVal = Math.round(neutral + q.dx);
-            data[idx]     = rVal < 0 ? 0 : rVal > 255 ? 255 : rVal;
-
-            const gVal = Math.round(neutral + q.dy);
-            data[idx + 1] = gVal < 0 ? 0 : gVal > 255 ? 255 : gVal;
-
-            data[idx + 2] = neutral;
-            data[idx + 3] = 255;
+          let falloff = 1.0;
+          if (edgeFalloff && depth > 0) {
+            const innerDX = posX - innerW + innerCorner;
+            const innerDY = posY - innerH + innerCorner;
+            const cIDX = innerDX > 0 ? innerDX : 0;
+            const cIDY = innerDY > 0 ? innerDY : 0;
+            const innerDist = Math.sqrt(cIDX * cIDX + cIDY * cIDY) +
+                              (innerDX > innerDY ? (innerDX > 0 ? 0 : innerDX) : (innerDY > 0 ? 0 : innerDY)) - innerCorner;
+            falloff = 0.5 * (1 + erf(innerDist * depthScale));
           }
-<<<<<<< HEAD
-=======
 
           const uDisp = 0.5 * dispX * falloff * curvature;
           const vDisp = 0.5 * dispY * falloff * curvature;
@@ -261,58 +252,28 @@ class GlassDisplacementEngine {
           setPixel(idxTR, 128, 128, 128);
           setPixel(idxBL, 128, 128, 128);
           setPixel(idxBR, 128, 128, 128);
->>>>>>> origin/main
         }
       }
     }
 
-    ctx.putImageData(imgData, 0, 0);
-    return canvas.toDataURL('image/png');
-  }
+    ctx.putImageData(img, 0, 0);
+    const dataUrl = c.toDataURL();
 
-<<<<<<< HEAD
-  updateFilter(filterId, feImgId, width, height, radius, scale, depth = 1.0, curvature = 1.2) {
-    const filter = document.getElementById(filterId);
-    const feImg = document.getElementById(feImgId);
-    if (!filter || !feImg) return;
-=======
     if (cache.size > 50) {
       cache.delete(cache.keys().next().value);
     }
     cache.set(cacheKey, { dataUrl, canvas: c });
->>>>>>> origin/main
 
-    const dataUrl = this.generateMap(width, height, radius, scale, depth, curvature);
-    feImg.setAttribute('href', dataUrl);
-    feImg.setAttribute('width', width);
-    feImg.setAttribute('height', height);
-    filter.setAttribute('width', width);
-    filter.setAttribute('height', height);
+    if (typeof wOrOpts !== 'object') {
+      return dataUrl;
+    }
 
-    const feDisp = filter.querySelector('feDisplacementMap');
-    if (feDisp) feDisp.setAttribute('scale', scale);
-  }
-}
-
-const engine = new GlassDisplacementEngine();
-
-document.addEventListener('DOMContentLoaded', () => {
-  // 1. Switch
-  const aaveSwitch = document.getElementById('aaveSwitch');
-  if (aaveSwitch) {
-    engine.updateFilter('switch-lens-filter', 'feImg-switch', 52, 52, 26, 28);
-    const toggleSwitch = () => {
-      aaveSwitch.classList.toggle('active');
-      const isActive = aaveSwitch.classList.contains('active');
-      aaveSwitch.setAttribute('aria-checked', isActive.toString());
+    return {
+      canvas: c,
+      dataUrl: dataUrl,
+      width: w,
+      height: h
     };
-<<<<<<< HEAD
-    aaveSwitch.addEventListener('click', toggleSwitch);
-    aaveSwitch.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        toggleSwitch();
-=======
   }
 
   function cachedMap(opts) {
@@ -355,6 +316,7 @@ document.addEventListener('DOMContentLoaded', () => {
       y: String(px.y),
       width: String(px.w),
       height: String(px.h),
+      preserveAspectRatio: 'none',
       result: 'map'
     });
 
@@ -456,7 +418,8 @@ document.addEventListener('DOMContentLoaded', () => {
   function createGlass(container, options) {
     options = options || {};
     const lens = options.lens || { x: 0, y: 0, w: 100, h: 100, r: 20 };
-    const baseId = `glass-${container.id || 'lens'}-${++_seq}`;
+    const safeBase = (container.id || 'lens').replace(/[^a-zA-Z0-9_-]/g, '') || 'lens';
+    const baseId = `glass-${safeBase}-${++_seq}`;
     let currentVersion = 1;
 
     const svg = svgEl('svg');
@@ -538,53 +501,10 @@ document.addEventListener('DOMContentLoaded', () => {
       destroy() {
         targetEl.style.filter = '';
         if (svg.parentNode) svg.parentNode.removeChild(svg);
->>>>>>> origin/main
       }
-    });
-  }
-
-  // 2. Slider
-  const slider = document.getElementById('sliderContainer');
-  const fillBar = document.getElementById('sliderFillBar');
-  const glassThumb = document.getElementById('sliderGlassThumb');
-  const fillDup = document.getElementById('sliderFillDuplicate');
-  const readout = document.getElementById('sliderReadout');
-  if (slider && fillBar && glassThumb) {
-    engine.updateFilter('slider-lens-filter', 'feImg-slider', 60, 60, 30, 24);
-    let dragging = false;
-    const updateSlider = (clientX) => {
-      const rect = slider.getBoundingClientRect();
-      let ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      const pct = Math.round(ratio * 100);
-      fillBar.style.width = `${pct}%`;
-      glassThumb.style.left = `calc(${pct}% - 30px)`;
-      if (fillDup) fillDup.style.transform = `translateX(-${ratio * rect.width}px)`;
-      if (readout) readout.textContent = `${pct}%`;
     };
-    slider.addEventListener('mousedown', (e) => { dragging = true; updateSlider(e.clientX); });
-    window.addEventListener('mousemove', (e) => { if (dragging) updateSlider(e.clientX); });
-    window.addEventListener('mouseup', () => { dragging = false; });
-    slider.addEventListener('touchstart', (e) => { dragging = true; updateSlider(e.touches[0].clientX); }, { passive: true });
-    window.addEventListener('touchmove', (e) => { if (dragging && e.touches[0]) updateSlider(e.touches[0].clientX); }, { passive: true });
-    window.addEventListener('touchend', () => { dragging = false; });
   }
 
-<<<<<<< HEAD
-  // 3. Segmented Toggle Group (5 Options)
-  const options = document.querySelectorAll('.toggle-option');
-  const pill = document.getElementById('togglePill');
-  const dupOptions = document.getElementById('duplicateOptions');
-  if (options.length && pill) {
-    const updatePill = (btn) => {
-      options.forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const offset = btn.offsetLeft;
-      const width = btn.offsetWidth;
-      pill.style.transform = `translateX(${offset}px)`;
-      pill.style.width = `${width}px`;
-      engine.updateFilter('toggle-lens-filter', 'feImg-toggle', width, 36, 18, 26);
-      if (dupOptions) dupOptions.style.transform = `translateX(-${offset}px)`;
-=======
   function createGlassWebGL(glCanvas, source, options) {
     options = options || {};
     const gl = glCanvas.getContext('webgl2', { alpha: true, antialias: true }) ||
@@ -772,92 +692,20 @@ document.addEventListener('DOMContentLoaded', () => {
           gl.drawArrays(gl.TRIANGLES, 0, 6);
         }
       }
->>>>>>> origin/main
     };
-    options.forEach(btn => btn.addEventListener('click', () => updatePill(btn)));
-    const active = document.querySelector('.toggle-option.active') || options[0];
-    if (active) setTimeout(() => updatePill(active), 50);
   }
 
-  // 4. Interactive Displacement Map Inspector
-  const inspectorStage = document.getElementById('inspectorStage');
-  const inspectorLens = document.getElementById('inspectorLens');
-  const inspectorRefracted = document.getElementById('inspectorRefractedContent');
-  const mapCanvas = document.getElementById('displacementMapCanvas');
-
-  const sWidth = document.getElementById('sWidth');
-  const sHeight = document.getElementById('sHeight');
-  const sRadius = document.getElementById('sRadius');
-  const sScale = document.getElementById('sScale');
-  const sDepth = document.getElementById('sDepth');
-  const sCurvature = document.getElementById('sCurvature');
-
-  const updateInspector = () => {
-    const w = parseInt(sWidth?.value || '180', 10);
-    const h = parseInt(sHeight?.value || '80', 10);
-    const r = parseInt(sRadius?.value || '40', 10);
-    const s = parseInt(sScale?.value || '35', 10);
-    const d = parseFloat(sDepth?.value || '1.0');
-    const c = parseFloat(sCurvature?.value || '1.2');
-
-    if (inspectorLens) {
-      inspectorLens.style.width = `${w}px`;
-      inspectorLens.style.height = `${h}px`;
-      inspectorLens.style.borderRadius = `${r}px`;
-    }
-
-    const rim = document.getElementById('inspectorSpecularRim');
-    if (rim) rim.style.borderRadius = `${r}px`;
-
-    // Render live into SVG filter & into the inspector canvas preview
-    const dataUrl = engine.generateMap(w, h, r, s, d, c, mapCanvas);
-    const feImg = document.getElementById('feImg-inspector');
-    if (feImg) {
-      feImg.setAttribute('href', dataUrl);
-      feImg.setAttribute('width', w);
-      feImg.setAttribute('height', h);
-    }
-    const filter = document.getElementById('inspector-lens-filter');
-    if (filter) {
-      filter.setAttribute('width', w);
-      filter.setAttribute('height', h);
-      const feDisp = filter.querySelector('feDisplacementMap');
-      if (feDisp) feDisp.setAttribute('scale', s);
-    }
-
-    document.getElementById('vWidth') && (document.getElementById('vWidth').textContent = `${w}px`);
-    document.getElementById('vHeight') && (document.getElementById('vHeight').textContent = `${h}px`);
-    document.getElementById('vRadius') && (document.getElementById('vRadius').textContent = `${r}px`);
-    document.getElementById('vScale') && (document.getElementById('vScale').textContent = `${s}`);
-    document.getElementById('vDepth') && (document.getElementById('vDepth').textContent = `${d.toFixed(1)}`);
-    document.getElementById('vCurvature') && (document.getElementById('vCurvature').textContent = `${c.toFixed(1)}`);
+  const exportObj = {
+    cache,
+    getCacheKey,
+    generateMap,
+    cachedMap,
+    buildFilter,
+    applySpecular,
+    createGlass,
+    createGlassWebGL,
+    erf
   };
 
-  let inspectorQueued = false;
-  const scheduleUpdateInspector = () => {
-    if (inspectorQueued) return;
-    inspectorQueued = true;
-    requestAnimationFrame(() => {
-      inspectorQueued = false;
-      updateInspector();
-    });
-  };
-
-  [sWidth, sHeight, sRadius, sScale, sDepth, sCurvature].forEach(inp => {
-    if (inp) inp.addEventListener('input', scheduleUpdateInspector);
-  });
-
-  if (inspectorStage && inspectorLens) {
-    inspectorStage.addEventListener('mousemove', (e) => {
-      const rect = inspectorStage.getBoundingClientRect();
-      const w = inspectorLens.offsetWidth;
-      const h = inspectorLens.offsetHeight;
-      const x = e.clientX - rect.left - w / 2;
-      const y = e.clientY - rect.top - h / 2;
-      inspectorLens.style.transform = `translate3d(${x}px, ${y}px, 0)`;
-      if (inspectorRefracted) inspectorRefracted.style.transform = `translate3d(${-x}px, ${-y}px, 0)`;
-    });
-  }
-
-  updateInspector();
+  return exportObj;
 });

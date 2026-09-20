@@ -10,41 +10,6 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 </head>
 <body>
-  <!-- Hidden Global SVG Filters for Hardware-Accelerated Optical Refraction -->
-  <svg class="svg-filters-root" aria-hidden="true">
-    <defs>
-      <!-- Hero Lens Filter -->
-      <filter id="hero-lens-filter" primitiveUnits="userSpaceOnUse" filterUnits="userSpaceOnUse" x="0" y="0">
-        <feImage id="feImg-hero" href="" result="MAP" />
-        <feDisplacementMap in="SourceGraphic" in2="MAP" scale="35" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-
-      <!-- Switch Filter -->
-      <filter id="switch-lens-filter" primitiveUnits="userSpaceOnUse" filterUnits="userSpaceOnUse" x="0" y="0">
-        <feImage id="feImg-switch" href="" result="MAP" />
-        <feDisplacementMap in="SourceGraphic" in2="MAP" scale="28" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-
-      <!-- Slider Filter -->
-      <filter id="slider-lens-filter" primitiveUnits="userSpaceOnUse" filterUnits="userSpaceOnUse" x="0" y="0">
-        <feImage id="feImg-slider" href="" result="MAP" />
-        <feDisplacementMap in="SourceGraphic" in2="MAP" scale="24" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-
-      <!-- Toggle Group Filter -->
-      <filter id="toggle-lens-filter" primitiveUnits="userSpaceOnUse" filterUnits="userSpaceOnUse" x="0" y="0">
-        <feImage id="feImg-toggle" href="" result="MAP" />
-        <feDisplacementMap in="SourceGraphic" in2="MAP" scale="26" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-
-      <!-- Interactive Inspector Studio Filter -->
-      <filter id="inspector-lens-filter" primitiveUnits="userSpaceOnUse" filterUnits="userSpaceOnUse" x="0" y="0">
-        <feImage id="feImg-inspector" href="" result="MAP" />
-        <feDisplacementMap in="SourceGraphic" in2="MAP" scale="35" xChannelSelector="R" yChannelSelector="G" />
-      </filter>
-    </defs>
-  </svg>
-
   <div class="article-wrapper">
     <!-- Header / Nav -->
     <nav class="top-nav">
@@ -351,7 +316,7 @@
             </div>
 
             <div class="slider-control">
-              <label>Edge Highlight <span id="vHighlight">0.6</span></label>
+              <label>Edge Highlight <span id="vHighlight">0.60</span></label>
               <input type="range" id="sHighlight" min="0" max="1" step="0.05" value="0.6" />
             </div>
           </div>
@@ -391,5 +356,251 @@
   </div>
 
   <script src="glass-engine.js"></script>
+  <script>
+    (function () {
+      function start() {
+        const GE = window.GlassEngine;
+        if (!GE) { setTimeout(start, 16); return; }
+        const { createGlass, generateMap } = GE;
+
+        const el = id => document.getElementById(id);
+        const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+        /* 1. THE SWITCH — a fixed 52px lens; CSS springs the thumb across the track. */
+        (function initSwitch() {
+          const sw = el('aaveSwitch');
+          const host = sw && sw.querySelector('.thumb-refraction-container');
+          if (!host) return;
+
+          createGlass(host, {
+            lens: { x: 0, y: 0, w: 52, h: 52, r: 26 },
+            scale: 28, depth: 127, curvature: 0.75, curvaturePow: 2.0,
+            glowStrength: 0.4, edgeStrength: 0.25
+          });
+
+          const toggle = () => {
+            sw.classList.toggle('active');
+            sw.setAttribute('aria-checked', String(sw.classList.contains('active')));
+          };
+          sw.addEventListener('click', toggle);
+          sw.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); }
+          });
+        })();
+
+        /* 2. THE SLIDER — the map is built once; dragging only moves the filter region. */
+        (function initSlider() {
+          const track = el('sliderContainer');
+          const fillBar = el('sliderFillBar');
+          const thumb = el('sliderGlassThumb');
+          const fillDup = el('sliderFillDuplicate');
+          const readout = el('sliderReadout');
+          const host = thumb && thumb.querySelector('.slider-thumb-refraction');
+          if (!track || !fillBar || !thumb || !host) return;
+
+          createGlass(host, {
+            lens: { x: 0, y: 0, w: 60, h: 60, r: 30 },
+            scale: 24, depth: 127, curvature: 0.7, curvaturePow: 2.0,
+            glowStrength: 0.35, edgeStrength: 0.25
+          });
+
+          let ratio = 0.65;
+          let dragging = false;
+
+          const paint = () => {
+            const pct = Math.round(ratio * 100);
+            fillBar.style.width = pct + '%';
+            thumb.style.left = `calc(${pct}% - 30px)`;
+            if (fillDup) fillDup.style.transform = `translateX(${-thumb.offsetLeft}px)`;
+            if (readout) readout.textContent = pct + '%';
+          };
+
+          const seek = clientX => {
+            const r = track.getBoundingClientRect();
+            ratio = clamp((clientX - r.left) / r.width, 0, 1);
+            paint();
+          };
+
+          track.addEventListener('pointerdown', e => {
+            dragging = true;
+            seek(e.clientX);
+          });
+          window.addEventListener('pointermove', e => { if (dragging) seek(e.clientX); });
+          window.addEventListener('pointerup', () => { dragging = false; });
+          window.addEventListener('pointercancel', () => { dragging = false; });
+          paint();
+        })();
+
+        /* 3. THE TOGGLE GROUP — the lens is the selection indicator, sized to the option. */
+        (function initToggle() {
+          const group = el('toggleGroup');
+          const pill = el('togglePill');
+          const dupOptions = el('duplicateOptions');
+          const host = pill && pill.querySelector('.toggle-pill-refraction');
+          const options = group ? Array.from(group.querySelectorAll('.toggle-option')) : [];
+          if (!host || !options.length) return;
+
+          const glass = createGlass(host, {
+            lens: { x: 0, y: 0, w: options[0].offsetWidth, h: 36, r: 18 },
+            scale: 26, depth: 127, curvature: 0.72, curvaturePow: 2.0,
+            glowStrength: 0.4, edgeStrength: 0.25
+          });
+
+          const select = btn => {
+            options.forEach(b => b.classList.toggle('active', b === btn));
+            // offsetLeft counts the border box; the pill is placed against the padding box.
+            const offset = btn.offsetLeft - group.clientLeft;
+            pill.style.transform = `translateX(${offset}px)`;
+            pill.style.width = btn.offsetWidth + 'px';
+            if (dupOptions) dupOptions.style.transform = `translateX(${-offset}px)`;
+            glass.setLens({ x: 0, y: 0, w: btn.offsetWidth, h: 36, r: 18 });
+          };
+
+          options.forEach(btn => btn.addEventListener('click', () => select(btn)));
+          select(options.find(b => b.classList.contains('active')) || options[0]);
+        })();
+
+        /* 4. THE INSPECTOR — one live glass, rebuilt from the slider values. */
+        (function initInspector() {
+          const stage = el('inspectorStage');
+          const lens = el('inspectorLens');
+          const refracted = el('inspectorRefractedContent');
+          const rim = el('inspectorSpecularRim');
+          const canvas = el('displacementMapCanvas');
+          const contentBg = stage && stage.querySelector('.inspector-content-bg');
+          const host = lens && lens.querySelector('.lens-refraction-container');
+          if (!stage || !lens || !host || !contentBg) return;
+
+          const controls = [
+            { input: 'sWidth', label: 'vWidth', suffix: 'px' },
+            { input: 'sHeight', label: 'vHeight', suffix: 'px' },
+            { input: 'sRadius', label: 'vRadius', suffix: 'px' },
+            { input: 'sScale', label: 'vScale', suffix: '' },
+            { input: 'sDepth', label: 'vDepth', suffix: '' },
+            { input: 'sCurvature', label: 'vCurvature', suffix: '' },
+            { input: 'sChroma', label: 'vChroma', suffix: '' },
+            { input: 'sHighlight', label: 'vHighlight', suffix: '' }
+          ];
+
+          let glass = null;
+          let queued = false;
+          const drag = { x: 0, y: 0 };
+          const size = { w: 180, h: 80 };
+          let align = { x: 0, y: 0 };
+
+          const num = id => Number(el(id).value);
+          const decimals = step => {
+            const text = String(step);
+            const dot = text.indexOf('.');
+            return dot < 0 ? 0 : text.length - dot - 1;
+          };
+
+          function params() {
+            const highlight = num('sHighlight');
+            return {
+              w: Math.round(num('sWidth')),
+              h: Math.round(num('sHeight')),
+              r: Math.round(num('sRadius')),
+              scale: num('sScale'),
+              depth: Math.round(num('sDepth') * 127),
+              curvature: num('sCurvature'),
+              glowStrength: highlight * 0.5,
+              edgeStrength: highlight * 0.4,
+              chroma: [1 + num('sChroma') * 0.05, 1 + num('sChroma') * 0.025, 1]
+            };
+          }
+
+          function placeLens() {
+            lens.style.transform = `translate3d(${drag.x}px, ${drag.y}px, 0)`;
+            if (!refracted) return;
+            // offsetLeft/Top ignore transforms, so this register holds while the lens drags.
+            refracted.style.transform =
+              `translate3d(${align.x - drag.x}px, ${align.y - drag.y}px, 0)`;
+          }
+
+          function rebuild() {
+            queued = false;
+            const p = params();
+
+            for (const c of controls) {
+              const input = el(c.input);
+              const label = el(c.label);
+              if (input && label) {
+                label.textContent =
+                  num(c.input).toFixed(decimals(input.step)) + c.suffix;
+              }
+            }
+
+            size.w = clamp(p.w, 1, 512);
+            size.h = clamp(p.h, 1, 512);
+            lens.style.width = size.w + 'px';
+            lens.style.height = size.h + 'px';
+            lens.style.borderRadius = p.r + 'px';
+            lens.style.left = `calc(50% - ${size.w / 2}px)`;
+            lens.style.top = `calc(50% - ${size.h / 2}px)`;
+            if (rim) rim.style.borderRadius = p.r + 'px';
+
+            align = {
+              x: contentBg.offsetLeft - lens.offsetLeft,
+              y: contentBg.offsetTop - lens.offsetTop
+            };
+
+            // The same call the engine makes internally, so the preview is the real map.
+            const mapW = Math.min(size.w, 256);
+            const mapH = Math.min(size.h, 256);
+            const map = generateMap({
+              w: mapW, h: mapH, radius: p.r, depth: p.depth,
+              curvature: p.curvature, curvaturePow: 2.0,
+              glowStrength: p.glowStrength, edgeStrength: p.edgeStrength
+            });
+
+            if (canvas && map.canvas) {
+              canvas.width = mapW;
+              canvas.height = mapH;
+              const ctx = canvas.getContext('2d');
+              ctx.clearRect(0, 0, mapW, mapH);
+              ctx.drawImage(map.canvas, 0, 0, mapW, mapH);
+            }
+
+            if (glass) glass.destroy();
+            glass = createGlass(host, {
+              lens: { x: 0, y: 0, w: size.w, h: size.h, r: p.r },
+              scale: p.scale, depth: p.depth, curvature: p.curvature, curvaturePow: 2.0,
+              chroma: p.chroma, glowStrength: p.glowStrength, edgeStrength: p.edgeStrength
+            });
+            placeLens();
+          }
+
+          function scheduleRebuild() {
+            if (queued) return;
+            queued = true;
+            requestAnimationFrame(rebuild);
+          }
+
+          for (const c of controls) {
+            const input = el(c.input);
+            if (input) input.addEventListener('input', scheduleRebuild);
+          }
+
+          stage.addEventListener('mousemove', e => {
+            const r = stage.getBoundingClientRect();
+            drag.x = e.clientX - r.left - size.w / 2;
+            drag.y = e.clientY - r.top - size.h / 2;
+            placeLens();
+          });
+          stage.addEventListener('mouseleave', () => {
+            drag.x = 0;
+            drag.y = 0;
+            placeLens();
+          });
+          window.addEventListener('resize', scheduleRebuild);
+
+          rebuild();
+        })();
+      }
+
+      start();
+    })();
+  </script>
 </body>
 </html>
