@@ -1,0 +1,11 @@
+{
+  "name": "glass-of-web",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --test test/test.js"
+  },
+  "dependencies": {
+    "playwright": "^1.63.0"
+  }
+}
