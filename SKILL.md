@@ -39,6 +39,7 @@ map feeds a **WebGL fragment shader** instead.
   - **R** = horizontal bend, **G** = vertical bend (128 = neutral)
   - **B** = specular glow ramp (white added via alpha = B − 128/255)
 - **SDF normals approach**: Signed-distance field for rounded-rect → direction toward center × depth × edgeFactor encoding. Center is flat-neutral, bend ramps toward rim via `curvature`/`curvaturePow`.
+- **4-fold quadrant symmetry**: computes only the top-left quadrant and mirrors to all 4 quadrants, yielding a **4× speedup** in map generation.
 - **Cross-browser**: Uses `primitiveUnits="userSpaceOnUse"` (pixel-space) with `feImage` using objectBoundingBox fractions for positioning. objectBoundingBox primitiveUnits breaks Safari/Firefox.
 - Regenerate ONLY when shape changes; cache by size+params (engine does this).
   Moving the lens only shifts the filter region — cheap.
@@ -46,6 +47,8 @@ map feeds a **WebGL fragment shader** instead.
 ### 2. The SVG filter (exact 17-primitive chain, cross-browser)
 
 `GlassEngine.buildFilter(defs, {lens:{x,y,w,h fractions},mapHref,scale,...})`
+
+Safari optimization: the specular `feColorMatrix` pass is restricted to the lens bounding box (`x/y/w/h`) on Safari, avoiding full-element cost and sub-pixel artifacts.
 
 ```
 <filter filterUnits="objectBoundingBox" primitiveUnits="userSpaceOnUse"
@@ -94,8 +97,10 @@ Critical details:
 - Same displacement map, same refraction — but via a WebGL fragment shader.
 - Use when the source is a `<canvas>` (e.g. QR code) or `<video>` that Safari
   refuses to SVG-filter.
-- Returns `{setLens(pxRect), render(), destroy()}`.
+- Returns `{setLens(pxRect), setLenses([pxRect]), render(), destroy()}`.
 - Call `render()` in a rAF loop for live video; for static canvas call once.
+- For multi-control surfaces (e.g. video player), pass `{lenses: [...]}` and call
+  `setLenses()` to update all lenses each frame.
 
 #### Specular overlay helper
 `GlassEngine.applySpecular(container, lensPx)`
@@ -195,6 +200,7 @@ const vgl = GlassEngine.createGlassWebGL(glCanvas, videoEl, {
 ## Files
 
 - `glass-engine.js` — drop-in `<script>` exposing `window.GlassEngine`
-  (`generateMap`, `buildFilter`, `createGlass`, `applySpecular`, `createGlassWebGL`)
-- `index.html` — dark-mode demo: switch, slider, toggle group, cursor lens
-- `showcase.html` — light lavender showcase: all components + QR WebGL + Dynamic Canvas WebGL + full 12-control playground
+  (`generateMap`, `buildFilter`, `createGlass`, `applySpecular`, `createGlassWebGL`);
+  also supports CommonJS `module.exports`.
+- `index.html` — dark-mode interactive demo with video player (multi-lens WebGL)
+- `showcase.html` — light lavender showcase: all components + playground
