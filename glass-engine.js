@@ -408,7 +408,6 @@
     container.appendChild(svg);
 
     const targetEl = options.refractionTarget || container;
-    const previousFilter = targetEl.style.filter;
     targetEl.style.filter = `url("#${filterId}")`;
 
     let mapResult = cachedMap({
@@ -471,7 +470,7 @@
         updateFilter(newLens);
       },
       destroy() {
-        targetEl.style.filter = previousFilter;
+        targetEl.style.filter = '';
         if (svg.parentNode) svg.parentNode.removeChild(svg);
       }
     };
@@ -547,20 +546,10 @@
 
     const vs = createShader(gl.VERTEX_SHADER, vsSource);
     const fs = createShader(gl.FRAGMENT_SHADER, fsSource);
-    if (!vs || !fs) return null;
-
     const prog = gl.createProgram();
-    if (!prog) return null;
     gl.attachShader(prog, vs);
     gl.attachShader(prog, fs);
     gl.linkProgram(prog);
-    if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-      console.error('Program linking failed:', gl.getProgramInfoLog(prog));
-      gl.deleteProgram(prog);
-      gl.deleteShader(vs);
-      gl.deleteShader(fs);
-      return null;
-    }
     gl.useProgram(prog);
 
     const quadBuffer = gl.createBuffer();
@@ -641,13 +630,12 @@
           gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, source);
         }
 
-        gl.disable(gl.SCISSOR_TEST);
-        gl.uniform4f(uLens, -1, -1, 0, 0);
-        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        if (!lensesList.length) {
+          gl.uniform4f(uLens, -1, -1, 0, 0);
+          gl.drawArrays(gl.TRIANGLES, 0, 6);
+          return;
+        }
 
-        if (!lensesList.length) return;
-
-        gl.enable(gl.SCISSOR_TEST);
         for (const l of lensesList) {
           let tex = dispTextures.get(l);
           if (!tex) {
@@ -663,13 +651,6 @@
           const ch = l.chroma || [1.08, 1.04, 1.0];
           const spec = l.specular !== false ? 1.0 : 0.0;
 
-          const sx = Math.max(0, Math.floor(l.x));
-          const sy = Math.max(0, Math.floor(sh - (l.y + l.h)));
-          const sWidth = Math.min(sw - sx, Math.ceil(l.w));
-          const sHeight = Math.min(sh - sy, Math.ceil(l.h));
-          if (sWidth <= 0 || sHeight <= 0) continue;
-          gl.scissor(sx, sy, sWidth, sHeight);
-
           gl.uniform4f(uLens, l.x / sw, l.y / sh, l.w / sw, l.h / sh);
           gl.uniform1f(uScale, sc);
           gl.uniform3f(uChroma, ch[0], ch[1], ch[2]);
@@ -677,7 +658,6 @@
 
           gl.drawArrays(gl.TRIANGLES, 0, 6);
         }
-        gl.disable(gl.SCISSOR_TEST);
       }
     };
   }
