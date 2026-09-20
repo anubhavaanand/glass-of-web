@@ -417,7 +417,8 @@
   function createGlass(container, options) {
     options = options || {};
     const lens = options.lens || { x: 0, y: 0, w: 100, h: 100, r: 20 };
-    const baseId = `glass-${container.id || 'lens'}-${++_seq}`;
+    const safeBase = (container.id || 'lens').replace(/[^a-zA-Z0-9_-]/g, '') || 'lens';
+    const baseId = `glass-${safeBase}-${++_seq}`;
     let currentVersion = 1;
 
     const svg = svgEl('svg');
