@@ -112,10 +112,6 @@ class GlassDisplacementEngine {
 
 const glassEngine = new GlassDisplacementEngine();
 
-function createSafeId(id) {
-  return (id || 'lens').replace(/[^a-zA-Z0-9_-]/g, '');
-}
-
 document.addEventListener('DOMContentLoaded', () => {
   // 1. Hero Lens
   const heroStage = document.getElementById('heroStage');
@@ -123,7 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const refractedHeroLayer = document.getElementById('refractedHeroLayer');
   if (heroStage && heroLens && refractedHeroLayer) {
     const w = 200, h = 90, r = 45;
-    const safeId = createSafeId(heroStage.id);
 
     glassEngine.updateFilter('hero-filter', 'feImg-hero', w, h, r, 42, 1.0, 1.2);
     let targetX = heroStage.clientWidth / 2, targetY = heroStage.clientHeight / 2;
