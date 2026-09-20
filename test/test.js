@@ -177,4 +177,40 @@ describe('GlassDisplacementEngine', () => {
       }
     });
   });
+
+  describe('erf', () => {
+    it('returns 0 for x=0', () => {
+      assert.ok(Math.abs(glassEngine.erf(0)) < 1e-6);
+    });
+
+    it('approaches 1 for Infinity', () => {
+      const val = glassEngine.erf(Infinity);
+      // Our erf approximation using formula: returns 1
+      assert.ok(Math.abs(val - 1) < 1e-6, `Expected approx 1, got ${val}`);
+    });
+
+    it('approaches -1 for -Infinity', () => {
+      const val = glassEngine.erf(-Infinity);
+      assert.ok(Math.abs(val + 1) < 1e-6, `Expected approx -1, got ${val}`);
+    });
+
+    it('preserves symmetry (erf(x) === -erf(-x))', () => {
+      const xVals = [0.5, 1, 2, 5];
+      for (const x of xVals) {
+        assert.ok(Math.abs(glassEngine.erf(x) - (-glassEngine.erf(-x))) < 1e-10);
+      }
+    });
+
+    it('returns known approximate values', () => {
+      // Known values:
+      // erf(1) ~ 0.8427
+      const val1 = glassEngine.erf(1);
+      assert.ok(Math.abs(val1 - 0.8427007929497148) < 1e-4);
+
+      // erf(0.5) ~ 0.520499
+      const val05 = glassEngine.erf(0.5);
+      assert.ok(Math.abs(val05 - 0.5204998778130465) < 1e-4);
+    });
+  });
+
 });
