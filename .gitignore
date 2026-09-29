@@ -1,5 +1,4 @@
 server.log
 *.log
 .serena/
-
 node_modules
