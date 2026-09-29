@@ -32,12 +32,38 @@ const createMockCanvas = () => {
 };
 
 // Create a mock document
+const createMockElement = (tag) => {
+  return {
+    tagName: tag,
+    id: '',
+    style: {},
+    attributes: {},
+    children: [],
+    parentNode: null,
+    setAttribute(name, value) { this.attributes[name] = value; },
+    getAttribute(name) { return this.attributes[name]; },
+    appendChild(child) {
+      child.parentNode = this;
+      this.children.push(child);
+    },
+    removeChild(child) {
+      const idx = this.children.indexOf(child);
+      if (idx !== -1) {
+        this.children.splice(idx, 1);
+        child.parentNode = null;
+      }
+    },
+    getBoundingClientRect() { return { width: 100, height: 100, left: 0, top: 0, right: 100, bottom: 100 }; }
+  };
+};
+
 const mockDocument = {
+  createElementNS: (ns, tag) => createMockElement(tag),
   createElement: (tag) => {
     if (tag === 'canvas') {
       return createMockCanvas();
     }
-    return {};
+    return createMockElement(tag);
   },
   addEventListener: () => {},
   getElementById: () => null,
@@ -233,4 +259,68 @@ describe('GlassDisplacementEngine', () => {
     });
   });
 
+
+  describe('createGlass', () => {
+    it('should inject svg defs into container and apply filter', () => {
+      const container = createMockElement('div');
+      container.id = 'test-container';
+
+      const inst = glassEngine.createGlass(container, {
+        lens: { x: 10, y: 10, w: 50, h: 50, r: 25 },
+        scale: 12
+      });
+
+      assert.strictEqual(container.children.length, 1, 'Should inject exactly one child (svg)');
+      const svg = container.children[0];
+      assert.strictEqual(svg.tagName, 'svg', 'Injected element should be an svg');
+      assert.strictEqual(svg.children.length, 1, 'svg should contain one child (defs)');
+      const defs = svg.children[0];
+      assert.strictEqual(defs.tagName, 'defs', 'svg child should be defs');
+
+      const filter = defs.children[0];
+      assert.strictEqual(filter.tagName, 'filter', 'defs should contain a filter');
+
+      assert.ok(container.style.filter.includes(filter.id), 'Container filter style should match injected filter id');
+      assert.ok(filter.id.startsWith('glass-test-container'), 'Filter id should be based on container id');
+      assert.ok(filter.id.includes('-v1'), 'Filter id should include version 1 initially');
+    });
+
+    it('setLens should update the filter with new parameters and increment version', () => {
+      const container = createMockElement('div');
+      container.id = 'test-container-2';
+
+      const inst = glassEngine.createGlass(container, {
+        lens: { x: 10, y: 10, w: 50, h: 50, r: 25 },
+        scale: 12
+      });
+
+      const initialFilterId = container.children[0].children[0].children[0].id;
+      assert.ok(initialFilterId.includes('-v1'), 'Initial version should be 1');
+
+      // Call setLens
+      inst.setLens({ x: 20, y: 20, w: 60, h: 60, r: 30 });
+
+      const newFilterId = container.children[0].children[0].children[0].id;
+      assert.ok(newFilterId.includes('-v2'), 'Updated version should be 2');
+      assert.ok(container.style.filter.includes(newFilterId), 'Container filter style should be updated to new id');
+      assert.notStrictEqual(initialFilterId, newFilterId, 'Filter ids should be different');
+    });
+
+    it('destroy should clean up DOM and filter style', () => {
+      const container = createMockElement('div');
+
+      const inst = glassEngine.createGlass(container, {
+        lens: { x: 10, y: 10, w: 50, h: 50, r: 25 },
+        scale: 12
+      });
+
+      assert.strictEqual(container.children.length, 1, 'SVG injected before destroy');
+      assert.ok(container.style.filter !== '', 'Filter set before destroy');
+
+      inst.destroy();
+
+      assert.strictEqual(container.children.length, 0, 'SVG removed after destroy');
+      assert.strictEqual(container.style.filter, '', 'Filter style cleared after destroy');
+    });
+  });
 });
