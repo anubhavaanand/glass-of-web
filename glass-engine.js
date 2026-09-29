@@ -316,6 +316,7 @@
       y: String(px.y),
       width: String(px.w),
       height: String(px.h),
+      preserveAspectRatio: 'none',
       result: 'map'
     });
 
