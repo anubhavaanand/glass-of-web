@@ -52,53 +52,6 @@
     return v <= min ? min : v >= max ? max : (v + 0.5) | 0;
   }
 
-  // --- WebGL Helper Functions ---
-  function _compileShader(gl, type, src) {
-    const shader = gl.createShader(type);
-    gl.shaderSource(shader, src);
-    gl.compileShader(shader);
-    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      console.error('Shader compilation failed:', gl.getShaderInfoLog(shader));
-      gl.deleteShader(shader);
-      return null;
-    }
-    return shader;
-  }
-
-  function _createShaderProgram(gl, vsSource, fsSource) {
-    const vs = _compileShader(gl, gl.VERTEX_SHADER, vsSource);
-    const fs = _compileShader(gl, gl.FRAGMENT_SHADER, fsSource);
-    if (!vs || !fs) return null;
-    const prog = gl.createProgram();
-    gl.attachShader(prog, vs);
-    gl.attachShader(prog, fs);
-    gl.linkProgram(prog);
-    return prog;
-  }
-
-  function _setupQuadBuffer(gl, prog) {
-    const quadBuffer = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
-      -1, -1,  1, -1, -1,  1,
-      -1,  1,  1, -1,  1,  1,
-    ]), gl.STATIC_DRAW);
-    const posAttr = gl.getAttribLocation(prog, 'a_position');
-    gl.enableVertexAttribArray(posAttr);
-    gl.vertexAttribPointer(posAttr, 2, gl.FLOAT, false, 0, 0);
-    return quadBuffer;
-  }
-
-  function _initTexture(gl) {
-    const tex = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    return tex;
-  }
-
   function getCacheKey(w, h, radius, depth, curvature, curvaturePow) {
     return `${w}_${h}_${radius}_${depth}_${curvature}_${curvaturePow}`;
   }
@@ -607,11 +560,36 @@
       }
     `;
 
-    const prog = _createShaderProgram(gl, vsSource, fsSource);
-    if (!prog) return null;
+    function createShader(type, src) {
+      const shader = gl.createShader(type);
+      gl.shaderSource(shader, src);
+      gl.compileShader(shader);
+      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+        console.error('Shader compilation failed:', gl.getShaderInfoLog(shader));
+        gl.deleteShader(shader);
+        return null;
+      }
+      return shader;
+    }
+
+    const vs = createShader(gl.VERTEX_SHADER, vsSource);
+    const fs = createShader(gl.FRAGMENT_SHADER, fsSource);
+    const prog = gl.createProgram();
+    gl.attachShader(prog, vs);
+    gl.attachShader(prog, fs);
+    gl.linkProgram(prog);
     gl.useProgram(prog);
 
-    const quadBuffer = _setupQuadBuffer(gl, prog);
+    const quadBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, quadBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
+      -1, -1,  1, -1, -1,  1,
+      -1,  1,  1, -1,  1,  1,
+    ]), gl.STATIC_DRAW);
+
+    const posAttr = gl.getAttribLocation(prog, 'a_position');
+    gl.enableVertexAttribArray(posAttr);
+    gl.vertexAttribPointer(posAttr, 2, gl.FLOAT, false, 0, 0);
 
     const uSource = gl.getUniformLocation(prog, 'u_source');
     const uDisplacement = gl.getUniformLocation(prog, 'u_displacement');
@@ -623,8 +601,13 @@
     gl.uniform1i(uSource, 0);
     gl.uniform1i(uDisplacement, 1);
 
+    const srcTex = gl.createTexture();
     gl.activeTexture(gl.TEXTURE0);
-    const srcTex = _initTexture(gl);
+    gl.bindTexture(gl.TEXTURE_2D, srcTex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
 
     let lensesList = options.lenses || (options.lens ? [options.lens] : []);
     const dispTextures = new Map();
@@ -640,8 +623,13 @@
         glowStrength: lensItem.glowStrength ?? 0.3
       });
 
+      const tex = gl.createTexture();
       gl.activeTexture(gl.TEXTURE1);
-      const tex = _initTexture(gl);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       if (mapRes.canvas) {
         gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, mapRes.canvas);
       }
